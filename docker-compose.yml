@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   mongodb:
     image: mongo:latest
@@ -13,7 +12,7 @@ services:
       - "8080:8080"
     depends_on:
       - inventory-service
-      - order-service
+      # - order-service
 
   inventory-service:
     build: ./inventory-service
@@ -22,12 +21,12 @@ services:
     depends_on:
       - mongodb
 
-  order-service:
-    build: ./order-service
-    ports:
-      - "8082:8082"
-    depends_on:
-      - mongodb
+  # order-service:
+  #   build: ./order-service
+  #   ports:
+  #     - "8082:8082"
+  #   depends_on:
+  #     - mongodb
 
 volumes:
   mongo-data:
