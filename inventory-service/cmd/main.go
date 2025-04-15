@@ -1,31 +1,33 @@
 package main
 
 import (
+	"log"
+	"net"
+
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/config"
-	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/handler"
+	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/grpcserver"
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/repository"
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/usecase"
-	"github.com/gin-gonic/gin"
+	inventorypb "github.com/Neroframe/ecommerce-platform/inventory-service/proto"
+	"google.golang.org/grpc"
 )
 
 func main() {
-	// utils.LoggerInit()
-	// utils.Log.Info("Inventory service started")
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
 
 	db := config.ConnectToMongo()
-
 	productRepo := repository.NewProductMongoRepo(db)
 
 	productUsecase := usecase.NewProductUsecase(productRepo)
+	
+	s := grpc.NewServer()
+	inventorypb.RegisterInventoryServiceServer(s, grpcserver.NewInventoryGRPCServer(productUsecase))
 
-	handler := handler.NewProductHandler(productUsecase)
-
-	r := gin.Default()
-	r.GET("/products/:id", handler.GetProduct)
-	r.POST("/products/", handler.CreateProduct)
-	r.PATCH("/products/:id", handler.UpdateProduct)
-	r.DELETE("/products/:id", handler.DeleteProduct)
-	r.GET("/products/", handler.ListProducts)
-
-	r.Run(":8081")
+	log.Println("gRPC server running on :50051")
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }
