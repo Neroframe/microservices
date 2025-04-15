@@ -12,19 +12,15 @@ import (
 )
 
 func (r *mongoProductRepo) Create(ctx context.Context, p *domain.Product) error {
-	log.Printf("[Repo] Inserting product: %+v\n", p)
-
 	res, err := r.collection.InsertOne(ctx, p)
 	if err != nil {
-		log.Printf("[Repo] InsertOne failed: %v\n", err)
+		log.Printf("InsertOne failed: %v\n", err)
 		return err
 	}
 
 	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
 		p.ID = oid.Hex()
-		log.Printf("[Repo] Inserted with ID: %s\n", p.ID)
-	} else {
-		log.Printf("[Repo] Inserted but ID type unexpected: %v\n", res.InsertedID)
+		log.Printf("Inserted with ID: %s\n", p.ID)
 	}
 
 	return nil

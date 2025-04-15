@@ -23,19 +23,20 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 
 	product, err := h.usecase.GetByID(c.Request.Context(), id)
 	if err != nil {
+		log.Printf("Product not found: %v", err)
 		c.JSON(404, gin.H{"error": "product not found"})
 		return
 	}
 
-	c.JSON(200, product)
+	log.Printf("Fetched product: %+v\n", product)
+	c.JSON(200, gin.H{"message": "product found"})
 }
 
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
-	log.Println("[Handler] Incoming POST /products")
 	// dto validation
 	var req dto.CreateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Printf("[Handler] JSON binding failed: %v", err)
+		log.Printf("JSON binding failed: %v", err)
 		c.JSON(400, gin.H{"error": "invalid payload"})
 		return
 	}
@@ -54,7 +55,8 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	c.JSON(201, product)
+	log.Printf("Fetched product: %+v\n", product)
+	c.JSON(201, gin.H{"message": "product created"})
 }
 
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
@@ -62,12 +64,14 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 	var req dto.UpdateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("JSON binding failed: %v", err)
 		c.JSON(400, gin.H{"error": "invalid payload"})
 		return
 	}
 
 	current, err := h.usecase.GetByID(c.Request.Context(), id)
 	if err != nil {
+		log.Printf("product not found %s: %v", id, err)
 		c.JSON(404, gin.H{"error": "product not found"})
 		return
 	}
@@ -81,17 +85,36 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	if err := h.usecase.Update(c.Request.Context(), product); err != nil {
+		log.Printf("Failed to update product %s: %v", id, err)
 		c.JSON(500, gin.H{"error": "failed to update product"})
 		return
 	}
 
+	log.Printf("Update product ID: %+v\n", product.ID)
 	c.JSON(200, gin.H{"message": "product updated"})
 }
 
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
+	id := c.Param("id")
 
+	if err := h.usecase.Delete(c.Request.Context(), id); err != nil {
+		log.Printf("Failed to delete product %s: %v", id, err)
+		c.JSON(500, gin.H{"error": "failed to delete product"})
+		return
+	}
+
+	log.Printf("Deleted product ID: %s\n", id)
+	c.JSON(200, gin.H{"message": "product deleted"})
 }
 
 func (h *ProductHandler) ListProducts(c *gin.Context) {
+	products, err := h.usecase.List(c.Request.Context())
+	if err != nil {
+		log.Printf("Failed to list products: %v", err)
+		c.JSON(500, gin.H{"error": "failed to list products"})
+		return
+	}
 
+	log.Printf("Listed %d products", len(products))
+	c.JSON(200, products)
 }
