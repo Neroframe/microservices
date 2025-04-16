@@ -12,21 +12,23 @@ services:
       - "8080:8080"
     depends_on:
       - inventory-service
-      # - order-service
+      - order-service
 
   inventory-service:
     build: ./inventory-service
     ports:
       - "8081:8081"
+      - "50051:50051"
     depends_on:
       - mongodb
 
-  # order-service:
-  #   build: ./order-service
-  #   ports:
-  #     - "8082:8082"
-  #   depends_on:
-  #     - mongodb
+  order-service:
+    build: ./order-service
+    ports:
+      - "8082:8082"
+      - "50052:50051"
+    depends_on:
+      - mongodb
 
 volumes:
   mongo-data:

@@ -21,6 +21,11 @@ func (s *InventoryGRPCServer) GetProductByID(ctx context.Context, req *inventory
 		return nil, status.Errorf(codes.NotFound, "product not found: %v", err)
 	}
 
+	if product == nil {
+		utils.Log.Warn("Product returned nil", "id", req.Id)
+		return nil, status.Errorf(codes.NotFound, "product not found")
+	}
+
 	utils.Log.Info("product found", "id", product.ID)
 	return &inventorypb.ProductResponse{
 		Id:       product.ID,

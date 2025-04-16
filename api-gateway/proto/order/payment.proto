@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package order;
+
+option go_package = "github.com/Neroframe/ecommerce-platform/order-service/proto;orderpb";
+
+message CreatePaymentRequest {
+  string order_id = 1;
+  double amount = 2;
+  string payment_method = 3;
+}
+
+message PaymentResponse {
+  string payment_id = 1;
+  string status = 2; 
+  string message = 3;
+}
+
+message GetPaymentRequest {
+  string payment_id = 1;
+}
+
+service PaymentService {
+  rpc CreatePayment(CreatePaymentRequest) returns (PaymentResponse); 
+  rpc GetPaymentByID(GetPaymentRequest) returns (PaymentResponse);
+}

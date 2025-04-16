@@ -7,13 +7,12 @@ RUN go mod download
 
 COPY . .
 
-# 🔥 Key: static binary + permissions
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o main ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main ./cmd/main.go
 
-# ✅ Use lightweight secure base image (not Alpine)
-FROM gcr.io/distroless/static:nonroot
+FROM alpine:latest
+WORKDIR /root/
 
-COPY --from=builder /app/main /
+COPY --from=builder /app/main .
 EXPOSE 8080
 
-ENTRYPOINT ["/main"]
+CMD [ "./main" ]

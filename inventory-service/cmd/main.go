@@ -30,6 +30,7 @@ func main() {
 
 	s := grpc.NewServer()
 	inventorypb.RegisterInventoryServiceServer(s, grpcserver.NewInventoryGRPCServer(productUsecase, categoryUsecase))
+
 	utils.Log.Info("grpc server running on :50051")
 	if err := s.Serve(lis); err != nil {
 		utils.Log.Error("failed to serve", "err", err)

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Neroframe/ecommerce-platform/api-gateway/internal/client"
-	inventorypb "github.com/Neroframe/ecommerce-platform/api-gateway/proto"
+	inventorypb "github.com/Neroframe/ecommerce-platform/api-gateway/proto/inventory"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc/status"
 )

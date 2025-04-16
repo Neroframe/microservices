@@ -2,9 +2,9 @@ package config
 
 import (
 	"context"
+	"log"
 	"time"
 
-	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/utils"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -13,19 +13,19 @@ func ConnectToMongo() *mongo.Database {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	utils.Log.Info("Connecting to MongoDB...", "uri", "mongodb://localhost:27017")
+	log.Println("Connecting to MongoDB...")
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongodb:27017"))
 	if err != nil {
-		utils.Log.Error("Mongo connection setup failed", "err", err)
+		log.Printf("Mongo connection setup failed %v\n", err)
 		panic(err)
 	}
 
 	if err := client.Ping(ctx, nil); err != nil {
-		utils.Log.Error("Mongo ping failed — DB is unreachable", "err", err)
+		log.Printf("Mongo ping failed — DB is unreachable %v\n", err)
 		panic(err)
 	}
 
-	utils.Log.Info("MongoDB connection successful")
+	log.Println("MongoDB connection successful")
 	return client.Database("inventory_db")
 }
