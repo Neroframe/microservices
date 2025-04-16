@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"strings"
+)
 
 type Product struct {
 	ID       string  `bson:"_id,omitempty"`
@@ -16,4 +19,8 @@ type ProductRepository interface {
 	Update(ctx context.Context, p *Product) error
 	Delete(ctx context.Context, id string) error
 	List(ctx context.Context) ([]*Product, error)
+}
+
+func (p *Product) NormalizeName() {
+	p.Name = strings.ToLower(strings.TrimSpace(p.Name))
 }

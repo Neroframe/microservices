@@ -64,14 +64,14 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 	var req dto.UpdateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Printf("JSON binding failed: %v", err)
+		utils.Log.Error("JSON binding failed", "err", err)
 		c.JSON(400, gin.H{"error": "invalid payload"})
 		return
 	}
 
 	current, err := h.usecase.GetByID(c.Request.Context(), id)
 	if err != nil {
-		log.Printf("product not found %s: %v", id, err)
+		utils.Log.Error("product not found", "id", id, "err", err)
 		c.JSON(404, gin.H{"error": "product not found"})
 		return
 	}
@@ -85,12 +85,12 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	if err := h.usecase.Update(c.Request.Context(), product); err != nil {
-		log.Printf("Failed to update product %s: %v", id, err)
+		utils.Log.Error("Failed to update product", "id", id, "err", err)
 		c.JSON(500, gin.H{"error": "failed to update product"})
 		return
 	}
 
-	log.Printf("Update product ID: %+v\n", product.ID)
+	utils.Log.Info("Product updated", "p", product)
 	c.JSON(200, gin.H{"message": "product updated"})
 }
 

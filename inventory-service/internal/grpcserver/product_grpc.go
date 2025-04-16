@@ -5,6 +5,7 @@ import (
 
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/domain"
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/usecase"
+	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/utils"
 	inventorypb "github.com/Neroframe/ecommerce-platform/inventory-service/proto"
 
 	"google.golang.org/grpc/codes"
@@ -18,17 +19,19 @@ type InventoryGRPCServer struct {
 }
 
 func NewInventoryGRPCServer(u usecase.ProductUsecase) *InventoryGRPCServer {
-	return &InventoryGRPCServer{
-		usecase: u,
-	}
+	return &InventoryGRPCServer{usecase: u}
 }
 
 func (s *InventoryGRPCServer) GetProductByID(ctx context.Context, req *inventorypb.GetProductRequest) (*inventorypb.ProductResponse, error) {
+	// utils.Log.Info("gRPC GetProductByID", "id", req.Id)
+
 	product, err := s.usecase.GetByID(ctx, req.Id)
 	if err != nil {
+		utils.Log.Error("product not found", "id", req.Id, "err", err)
 		return nil, status.Errorf(codes.NotFound, "product not found: %v", err)
 	}
 
+	utils.Log.Info("product found", "id", product.ID)
 	return &inventorypb.ProductResponse{
 		Id:       product.ID,
 		Name:     product.Name,
@@ -39,6 +42,8 @@ func (s *InventoryGRPCServer) GetProductByID(ctx context.Context, req *inventory
 }
 
 func (s *InventoryGRPCServer) CreateProduct(ctx context.Context, req *inventorypb.CreateProductRequest) (*inventorypb.ProductResponse, error) {
+	// utils.Log.Info("gRPC CreateProduct", "name", req.Name)
+
 	product := &domain.Product{
 		Name:     req.Name,
 		Price:    req.Price,
@@ -47,9 +52,11 @@ func (s *InventoryGRPCServer) CreateProduct(ctx context.Context, req *inventoryp
 	}
 
 	if err := s.usecase.Create(ctx, product); err != nil {
+		utils.Log.Error("failed to create product", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to create product: %v", err)
 	}
 
+	utils.Log.Info("product created", "id", product.ID)
 	return &inventorypb.ProductResponse{
 		Id:       product.ID,
 		Name:     product.Name,
@@ -60,8 +67,11 @@ func (s *InventoryGRPCServer) CreateProduct(ctx context.Context, req *inventoryp
 }
 
 func (s *InventoryGRPCServer) UpdateProduct(ctx context.Context, req *inventorypb.UpdateProductRequest) (*inventorypb.ProductResponse, error) {
+	// utils.Log.Info("gRPC UpdateProduct", "id", req.Id)
+
 	current, err := s.usecase.GetByID(ctx, req.Id)
 	if err != nil {
+		utils.Log.Error("product not found for update", "id", req.Id, "err", err)
 		return nil, status.Errorf(codes.NotFound, "product not found: %v", err)
 	}
 
@@ -79,9 +89,11 @@ func (s *InventoryGRPCServer) UpdateProduct(ctx context.Context, req *inventoryp
 	}
 
 	if err := s.usecase.Update(ctx, current); err != nil {
+		utils.Log.Error("failed to update product", "id", current.ID, "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to update product: %v", err)
 	}
 
+	utils.Log.Info("product updated", "id", current.ID)
 	return &inventorypb.ProductResponse{
 		Id:       current.ID,
 		Name:     current.Name,
@@ -92,18 +104,27 @@ func (s *InventoryGRPCServer) UpdateProduct(ctx context.Context, req *inventoryp
 }
 
 func (s *InventoryGRPCServer) DeleteProduct(ctx context.Context, req *inventorypb.DeleteProductRequest) (*emptypb.Empty, error) {
+	// utils.Log.Info("gRPC DeleteProduct", "id", req.Id)
+
 	if err := s.usecase.Delete(ctx, req.Id); err != nil {
+		utils.Log.Error("failed to delete product", "id", req.Id, "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to delete product: %v", err)
 	}
 
+	utils.Log.Info("product deleted", "id", req.Id)
 	return &emptypb.Empty{}, nil
 }
 
 func (s *InventoryGRPCServer) ListProducts(ctx context.Context, _ *inventorypb.ListProductsRequest) (*inventorypb.ListProductsResponse, error) {
+	// utils.Log.Info("gRPC ListProducts")
+
 	products, err := s.usecase.List(ctx)
 	if err != nil {
+		utils.Log.Error("failed to list products", "err", err)
 		return nil, status.Errorf(codes.Internal, "failed to list products: %v", err)
 	}
+
+	utils.Log.Info("products listed", "count", len(products))
 
 	var result []*inventorypb.ProductResponse
 	for _, p := range products {
