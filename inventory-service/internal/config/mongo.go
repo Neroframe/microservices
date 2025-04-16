@@ -14,7 +14,7 @@ func ConnectToMongo() *mongo.Database {
 	defer cancel()
 
 	log.Println("[Mongo] Connecting to mongodb:27017...")
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongodb:27017"))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017")) // mongodb://mongodb:27017
 	if err != nil {
 		log.Fatal("Mongo connection error:", err)
 	}
