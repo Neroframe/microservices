@@ -10,20 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetProductByID(c *gin.Context) {
-	id := c.Param("id")
-
-	resp, err := client.Inventory.GetProductByID(context.Background(), &inventorypb.GetProductRequest{
-		Id: id,
-	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch product"})
-		return
-	}
-
-	c.JSON(http.StatusOK, resp)
-}
-
 func CreateProduct(c *gin.Context) {
 	var req inventorypb.CreateProductRequest
 	if err := c.BindJSON(&req); err != nil {
@@ -34,6 +20,20 @@ func CreateProduct(c *gin.Context) {
 	resp, err := client.Inventory.CreateProduct(context.Background(), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create product"})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func GetProductByID(c *gin.Context) {
+	id := c.Param("id")
+
+	resp, err := client.Inventory.GetProductByID(context.Background(), &inventorypb.GetProductRequest{
+		Id: id,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch product"})
 		return
 	}
 

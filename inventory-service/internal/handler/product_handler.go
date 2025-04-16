@@ -5,16 +5,15 @@ import (
 
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/domain"
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/handler/dto"
-	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/usecase"
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type ProductHandler struct {
-	usecase usecase.ProductUsecase
+	usecase domain.ProductUsecase
 }
 
-func NewProductHandler(u usecase.ProductUsecase) *ProductHandler {
+func NewProductHandler(u domain.ProductUsecase) *ProductHandler {
 	return &ProductHandler{usecase: u}
 }
 

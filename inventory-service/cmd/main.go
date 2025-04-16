@@ -23,12 +23,13 @@ func main() {
 
 	db := config.ConnectToMongo()
 	productRepo := repository.NewProductMongoRepo(db)
+	categoryRepo := repository.NewCategoryMongoRepo(db)
 
 	productUsecase := usecase.NewProductUsecase(productRepo)
+	categoryUsecase := usecase.NewCategoryUsecase(categoryRepo)
 
 	s := grpc.NewServer()
-	inventorypb.RegisterInventoryServiceServer(s, grpcserver.NewInventoryGRPCServer(productUsecase))
-
+	inventorypb.RegisterInventoryServiceServer(s, grpcserver.NewInventoryGRPCServer(productUsecase, categoryUsecase))
 	utils.Log.Info("grpc server running on :50051")
 	if err := s.Serve(lis); err != nil {
 		utils.Log.Error("failed to serve", "err", err)

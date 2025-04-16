@@ -21,6 +21,14 @@ type ProductRepository interface {
 	List(ctx context.Context) ([]*Product, error)
 }
 
+type ProductUsecase interface {
+	Create(ctx context.Context, p *Product) error
+	GetByID(ctx context.Context, id string) (*Product, error)
+	Update(ctx context.Context, p *Product) error
+	Delete(ctx context.Context, id string) error
+	List(ctx context.Context) ([]*Product, error)
+}
+
 func (p *Product) NormalizeName() {
 	p.Name = strings.ToLower(strings.TrimSpace(p.Name))
 }

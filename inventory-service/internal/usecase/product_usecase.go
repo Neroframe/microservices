@@ -7,19 +7,11 @@ import (
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/domain"
 )
 
-type ProductUsecase interface {
-	Create(ctx context.Context, p *domain.Product) error
-	GetByID(ctx context.Context, id string) (*domain.Product, error)
-	Update(ctx context.Context, p *domain.Product) error
-	Delete(ctx context.Context, id string) error
-	List(ctx context.Context) ([]*domain.Product, error)
-}
-
 type productUsecase struct {
 	productRepo domain.ProductRepository
 }
 
-func NewProductUsecase(r domain.ProductRepository) ProductUsecase {
+func NewProductUsecase(r domain.ProductRepository) domain.ProductUsecase {
 	return &productUsecase{productRepo: r}
 }
 

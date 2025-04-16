@@ -28,6 +28,12 @@ func main() {
 		api.PUT("/product", handler.UpdateProduct)
 		api.DELETE("/product/:id", handler.DeleteProduct)
 		api.GET("/products", handler.ListProducts)
+
+		api.GET("/category/:id", handler.GetCategoryByID)
+		api.POST("/category", handler.CreateCategory)
+		api.PUT("/category", handler.UpdateCategory)
+		api.DELETE("/category/:id", handler.DeleteCategory)
+		api.GET("/categories", handler.ListCategories)
 	}
 
 	log.Println("API Gateway running on :8080")
