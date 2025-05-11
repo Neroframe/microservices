@@ -5,6 +5,7 @@ import (
 
 	"github.com/Neroframe/ecommerce-platform/order-service/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -24,24 +25,40 @@ func (r *OrderRepository) Create(ctx context.Context, o *domain.Order) error {
 }
 
 func (r *OrderRepository) GetByID(ctx context.Context, id string) (*domain.Order, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
 	var order domain.Order
-	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&order)
+	err = r.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&order)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}
 		return nil, err
 	}
+	order.ID = id // set string ID back
 	return &order, nil
 }
 
 func (r *OrderRepository) Update(ctx context.Context, o *domain.Order) error {
-	_, err := r.collection.UpdateByID(ctx, o.ID, bson.M{"$set": bson.M{"status": o.Status}})
+	oid, err := primitive.ObjectIDFromHex(o.ID)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.collection.UpdateByID(ctx, oid, bson.M{"$set": bson.M{"status": o.Status}})
 	return err
 }
 
 func (r *OrderRepository) Delete(ctx context.Context, id string) error {
-	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": oid})
 	return err
 }
 

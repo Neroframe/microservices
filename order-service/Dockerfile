@@ -13,6 +13,6 @@ FROM alpine:latest
 WORKDIR /root/
 
 COPY --from=builder /app/main .
-EXPOSE 8082
+EXPOSE 50051
 
 CMD [ "./main" ]

@@ -17,7 +17,6 @@ services:
   inventory-service:
     build: ./inventory-service
     ports:
-      - "8081:8081"
       - "50051:50051"
     depends_on:
       - mongodb
@@ -25,10 +24,22 @@ services:
   order-service:
     build: ./order-service
     ports:
-      - "8082:8082"
+    # host:container
       - "50052:50051"
     depends_on:
       - mongodb
+
+  statistics-service:
+    build: ./statistics-service
+    ports:
+      - "50053:50051"
+    environment:
+      - VERSION=1.0.0
+      - GRPC_PORT=50051
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DATABASE=statistics_db
+      - NATS_HOSTS=nats://nats:4222
+
 
 volumes:
   mongo-data:
