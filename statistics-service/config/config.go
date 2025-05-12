@@ -37,9 +37,9 @@ type (
 
 	// NatsSubjects for main application
 	NatsSubjects struct {
-		ClientEventSubject string `env:"NATS_CLIENT_EVENT_SUBJECT,notEmpty"`
+		OrderCreated   string `env:"NATS_ORDER_CREATED_SUBJECT,notEmpty"`
+		UserRegistered string `env:"NATS_USER_REGISTERED_SUBJECT,notEmpty"`
 	}
-
 )
 
 func New() (*Config, error) {
