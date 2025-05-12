@@ -6,8 +6,8 @@ import (
 	"log"
 	"sync"
 
-	natscl "github.com/Neroframe/ecommerce-platform/statistics-service/pkg/nats"
-	"github.com/Neroframe/ecommerce-platform/statistics-service/pkg/safe"
+	natscl "github.com/Neroframe/ecommerce-platform/inventory-service/pkg/nats"
+	"github.com/Neroframe/ecommerce-platform/inventory-service/pkg/safe"
 	"github.com/nats-io/nats.go"
 )
 

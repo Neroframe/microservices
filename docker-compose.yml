@@ -12,7 +12,11 @@ services:
     image: nats:2.9-alpine
     ports:
       - "4222:4222"
-
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+      
   api-gateway:
     build: ./api-gateway
     ports:
@@ -22,11 +26,30 @@ services:
       - order-service
 
   inventory-service:
-    build: ./inventory-service
-    ports:
-      - "50051:50051"
+    build:
+      context: ./inventory-service
     depends_on:
       - mongodb
+      - redis
+    ports:
+      - "50051:50051"
+    environment:
+      # Redis settings
+      - REDIS_HOSTS=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_TLS_ENABLE=false
+      - REDIS_DIAL_TIMEOUT=5s
+      - REDIS_READ_TIMEOUT=3s
+      - REDIS_WRITE_TIMEOUT=3s
+      # Cache settings
+      - REDIS_CACHE_CLIENT_TTL=12h
+      - CLIENT_REFRESH_TIME=1m
+      # Mongo settings
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB_NAME=inventory_db
+      - MONGO_TIMEOUT=3s
+      # gRPC
+      - GRPC_PORT=50051
 
   order-service:
     build: ./order-service

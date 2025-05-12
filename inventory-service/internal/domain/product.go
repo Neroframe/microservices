@@ -27,6 +27,7 @@ type ProductUsecase interface {
 	Update(ctx context.Context, p *Product) error
 	Delete(ctx context.Context, id string) error
 	List(ctx context.Context) ([]*Product, error)
+	RefreshProductsCache(ctx context.Context) error
 }
 
 func (p *Product) NormalizeName() {
