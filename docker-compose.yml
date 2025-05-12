@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   mongodb:
     image: mongo:latest
@@ -5,6 +7,11 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+
+  nats:
+    image: nats:2.9-alpine
+    ports:
+      - "4222:4222"
 
   api-gateway:
     build: ./api-gateway
@@ -24,7 +31,6 @@ services:
   order-service:
     build: ./order-service
     ports:
-    # host:container
       - "50052:50051"
     depends_on:
       - mongodb
@@ -32,13 +38,33 @@ services:
   statistics-service:
     build: ./statistics-service
     ports:
-      - "50053:50051"
+      - "50053:50051"    # host:container
+    depends_on:
+      - mongodb
+      - nats
     environment:
-      - VERSION=1.0.0
-      - GRPC_PORT=50051
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DATABASE=statistics_db
-      - NATS_HOSTS=nats://nats:4222
+      VERSION:                    "1.0.0"
+      # gRPC
+      GRPC_PORT:                  "50051"
+      GRPC_MAX_MESSAGE_SIZE_MIB:  "12"
+      GRPC_MAX_CONNECTION_AGE:    "30s"
+      GRPC_MAX_CONNECTION_AGE_GRACE: "10s"
+      # Mongo
+      MONGO_DB_URI:                 "mongodb:27017"
+      MONGO_DB:                     "statistics_db"
+      MONGO_USERNAME:               ""           
+      MONGO_PWD:                    ""
+      MONGO_DB_REPLICA_SET:         ""
+      MONGO_WRITE_CONCERN:          "majority"
+      MONGO_TLS_FILE_PATH:          ""
+      MONGO_TLS_ENABLE:             "false"
+      # NATS
+      NATS_HOSTS:                 "nats://nats:4222"
+      NATS_NKEY:                  "SUACSSL3UAHUDXKFSNVUZRF5UHPMWZ6BFDTJ7M6USDXIEDNPPQYYYCU3VY"
+      NATS_IS_TEST:               "true"
+      # Subjects
+      NATS_ORDER_CREATED_SUBJECT:   "order.created"
+      NATS_USER_REGISTERED_SUBJECT: "user.registered"
 
 
 volumes:
