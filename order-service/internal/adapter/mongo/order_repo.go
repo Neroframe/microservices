@@ -1,7 +1,8 @@
-package repository
+package mongo
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Neroframe/ecommerce-platform/order-service/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
@@ -13,13 +14,14 @@ type OrderRepository struct {
 	collection *mongo.Collection
 }
 
-func NewOrderMongoRepo(db *mongo.Database) *OrderRepository {
+func NewOrderRepository(db *mongo.Database) *OrderRepository {
 	return &OrderRepository{
 		collection: db.Collection("orders"),
 	}
 }
 
 func (r *OrderRepository) Create(ctx context.Context, o *domain.Order) error {
+	// InsertOne will set o.ID automatically if you're using _id tags in your struct
 	_, err := r.collection.InsertOne(ctx, o)
 	return err
 }
@@ -27,37 +29,46 @@ func (r *OrderRepository) Create(ctx context.Context, o *domain.Order) error {
 func (r *OrderRepository) GetByID(ctx context.Context, id string) (*domain.Order, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid id %q: %w", id, err)
 	}
 
-	var order domain.Order
-	err = r.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&order)
-	if err != nil {
+	var o domain.Order
+	if err := r.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&o); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, nil
+			return nil, domain.ErrNotFound
 		}
 		return nil, err
 	}
-	order.ID = id // set string ID back
-	return &order, nil
+	// ensure the string ID is set
+	o.ID = oid.Hex()
+	return &o, nil
 }
 
 func (r *OrderRepository) Update(ctx context.Context, o *domain.Order) error {
+	if o.ID == "" {
+		return domain.ErrNotFound
+	}
 	oid, err := primitive.ObjectIDFromHex(o.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid id %q: %w", o.ID, err)
 	}
 
-	_, err = r.collection.UpdateByID(ctx, oid, bson.M{"$set": bson.M{"status": o.Status}})
+	// update only the status and updated timestamp
+	update := bson.M{
+		"$set": bson.M{
+			"status":     o.Status,
+			"updated_at": o.UpdatedAt,
+		},
+	}
+	_, err = r.collection.UpdateByID(ctx, oid, update)
 	return err
 }
 
 func (r *OrderRepository) Delete(ctx context.Context, id string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid id %q: %w", id, err)
 	}
-
 	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": oid})
 	return err
 }
@@ -74,6 +85,10 @@ func (r *OrderRepository) ListByUserID(ctx context.Context, userID string) ([]*d
 		var o domain.Order
 		if err := cursor.Decode(&o); err != nil {
 			return nil, err
+		}
+		// set string ID from ObjectID
+		if oid, err := primitive.ObjectIDFromHex(o.ID); err == nil {
+			o.ID = oid.Hex()
 		}
 		orders = append(orders, &o)
 	}

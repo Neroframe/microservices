@@ -18,12 +18,14 @@ import (
 	natsconsumer "github.com/Neroframe/ecommerce-platform/statistics-service/pkg/nats/consumer"
 )
 
+const serviceName = "statistics-service"
+
 type App struct {
 	grpcServer   *grpcadapter.API
 	natsConsumer *natsconsumer.PubSub
 }
 
-// returns an App instance 
+// returns an App instance
 func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	log.Printf("Starting %s...", serviceName)
 
@@ -95,5 +97,3 @@ func (a *App) Run() error {
 		return nil
 	}
 }
-
-const serviceName = "statistics-service"

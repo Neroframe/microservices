@@ -9,11 +9,12 @@ import (
 )
 
 type orderUsecase struct {
-	repo domain.OrderRepository
+	repo      domain.OrderRepository
+	publisher domain.OrderEventPublisher
 }
 
-func NewOrderUsecase(r domain.OrderRepository) domain.OrderUsecase {
-	return &orderUsecase{repo: r}
+func NewOrderUsecase(r domain.OrderRepository, p domain.OrderEventPublisher) domain.OrderUsecase {
+	return &orderUsecase{repo: r, publisher: p}
 }
 
 func (u *orderUsecase) Create(ctx context.Context, o *domain.Order) error {

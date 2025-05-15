@@ -1,38 +1,25 @@
 package main
 
 import (
+	"context"
 	"log"
-	"net"
 
-	"github.com/Neroframe/ecommerce-platform/order-service/internal/config.go"
-	"github.com/Neroframe/ecommerce-platform/order-service/internal/grpcserver"
-	"github.com/Neroframe/ecommerce-platform/order-service/internal/repository"
-	"github.com/Neroframe/ecommerce-platform/order-service/internal/usecase"
-	orderpb "github.com/Neroframe/ecommerce-platform/order-service/proto"
-	"google.golang.org/grpc"
+	"github.com/Neroframe/ecommerce-platform/order-service/config"
+	"github.com/Neroframe/ecommerce-platform/order-service/internal/app"
 )
 
 func main() {
-	log.Println("Order Service: Starting up")
-
-	lis, err := net.Listen("tcp", ":50051")
+	cfg, err := config.New()
 	if err != nil {
-		log.Fatalf("Order Service: Failed to listen: %v", err)
+		log.Fatalf("config laod error: %v", err)
 	}
 
-	db := config.ConnectToMongo()
-	orderRepo := repository.NewOrderMongoRepo(db)
-	paymentRepo := repository.NewPaymentMongoRepo(db)
+	application, err := app.New(context.Background(), cfg)
+	if err != nil {
+		log.Fatalf("app init error: %v", err)
+	}
 
-	orderUsecase := usecase.NewOrderUsecase(orderRepo)
-	paymentUsecase := usecase.NewPaymentUsecase(paymentRepo)
-
-	s := grpc.NewServer()
-	orderpb.RegisterOrderServiceServer(s, grpcserver.NewOrderGRPCServer(orderUsecase, paymentUsecase))
-	orderpb.RegisterPaymentServiceServer(s, grpcserver.NewOrderGRPCServer(orderUsecase, paymentUsecase))
-
-	log.Println("Order Service: gRPC server running on :50051")
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("Order Service: Failed to serve: %v", err)
+	if err := application.Run(); err != nil {
+		log.Fatalf("service error: %v", err)
 	}
 }

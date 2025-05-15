@@ -1,4 +1,4 @@
-package grpcserver
+package handler
 
 import (
 	"context"
@@ -9,27 +9,35 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *OrderGRPCServer) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest) (*orderpb.OrderResponse, error) {
+type OrderHandler struct {
+	orderpb.UnimplementedOrderServiceServer
+	orderUsecase domain.OrderUsecase
+}
+
+func NewOrderHandler(uc domain.OrderUsecase) *OrderHandler {
+	return &OrderHandler{orderUsecase: uc}
+}
+
+func (h *OrderHandler) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest) (*orderpb.OrderResponse, error) {
 	order := &domain.Order{
 		UserID: req.UserId,
 		Items:  mapOrderItems(req.Items),
 	}
-	if err := s.orderUsecase.Create(ctx, order); err != nil {
+	if err := h.orderUsecase.Create(ctx, order); err != nil {
 		return nil, status.Errorf(codes.Internal, "create order failed: %v", err)
 	}
 	return toOrderResponse(order), nil
 }
-
-func (s *OrderGRPCServer) GetOrderByID(ctx context.Context, req *orderpb.GetOrderRequest) (*orderpb.OrderResponse, error) {
-	order, err := s.orderUsecase.GetByID(ctx, req.Id)
+func (h *OrderHandler) GetOrderByID(ctx context.Context, req *orderpb.GetOrderRequest) (*orderpb.OrderResponse, error) {
+	order, err := h.orderUsecase.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "order not found: %v", err)
 	}
 	return toOrderResponse(order), nil
 }
 
-func (s *OrderGRPCServer) UpdateOrderStatus(ctx context.Context, req *orderpb.UpdateOrderStatusRequest) (*orderpb.OrderResponse, error) {
-	order, err := s.orderUsecase.GetByID(ctx, req.Id)
+func (h *OrderHandler) UpdateOrderStatus(ctx context.Context, req *orderpb.UpdateOrderStatusRequest) (*orderpb.OrderResponse, error) {
+	order, err := h.orderUsecase.GetByID(ctx, req.Id)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "order not found: %v", err)
 	}
@@ -38,14 +46,14 @@ func (s *OrderGRPCServer) UpdateOrderStatus(ctx context.Context, req *orderpb.Up
 	}
 
 	order.Status = req.Status
-	if err := s.orderUsecase.Update(ctx, order); err != nil {
+	if err := h.orderUsecase.Update(ctx, order); err != nil {
 		return nil, status.Errorf(codes.Internal, "update failed: %v", err)
 	}
 	return toOrderResponse(order), nil
 }
 
-func (s *OrderGRPCServer) ListUserOrders(ctx context.Context, req *orderpb.ListOrdersRequest) (*orderpb.ListOrdersResponse, error) {
-	orders, err := s.orderUsecase.ListByUserID(ctx, req.UserId)
+func (h *OrderHandler) ListUserOrders(ctx context.Context, req *orderpb.ListOrdersRequest) (*orderpb.ListOrdersResponse, error) {
+	orders, err := h.orderUsecase.ListByUserID(ctx, req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list failed: %v", err)
 	}

@@ -1,4 +1,4 @@
-package grpcserver
+package handler
 
 import (
 	"context"
@@ -9,14 +9,23 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *OrderGRPCServer) CreatePayment(ctx context.Context, req *orderpb.CreatePaymentRequest) (*orderpb.PaymentResponse, error) {
+type PaymentHandler struct {
+	orderpb.UnimplementedPaymentServiceServer
+	uc domain.PaymentUsecase
+}
+
+func NewPaymentHandler(uc domain.PaymentUsecase) *PaymentHandler {
+	return &PaymentHandler{uc: uc}
+}
+
+func (h *PaymentHandler) CreatePayment(ctx context.Context, req *orderpb.CreatePaymentRequest) (*orderpb.PaymentResponse, error) {
 	payment := &domain.Payment{
 		OrderID:       req.OrderId,
 		Amount:        req.Amount,
 		PaymentMethod: req.PaymentMethod,
 	}
 
-	if err := s.paymentUsecase.Create(ctx, payment); err != nil {
+	if err := h.uc.Create(ctx, payment); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create payment: %v", err)
 	}
 
@@ -27,8 +36,8 @@ func (s *OrderGRPCServer) CreatePayment(ctx context.Context, req *orderpb.Create
 	}, nil
 }
 
-func (s *OrderGRPCServer) GetPaymentByID(ctx context.Context, req *orderpb.GetPaymentRequest) (*orderpb.PaymentResponse, error) {
-	payment, err := s.paymentUsecase.GetByID(ctx, req.PaymentId)
+func (h *PaymentHandler) GetPaymentByID(ctx context.Context, req *orderpb.GetPaymentRequest) (*orderpb.PaymentResponse, error) {
+	payment, err := h.uc.GetByID(ctx, req.PaymentId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "payment not found: %v", err)
 	}
