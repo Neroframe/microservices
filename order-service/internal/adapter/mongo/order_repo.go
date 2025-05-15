@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/Neroframe/ecommerce-platform/order-service/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
@@ -21,9 +22,17 @@ func NewOrderRepository(db *mongo.Database) *OrderRepository {
 }
 
 func (r *OrderRepository) Create(ctx context.Context, o *domain.Order) error {
-	// InsertOne will set o.ID automatically if you're using _id tags in your struct
-	_, err := r.collection.InsertOne(ctx, o)
-	return err
+	log.Printf("[Mongo] Inserting order: %+v", o)
+	res, err := r.collection.InsertOne(ctx, o)
+	if err != nil {
+		log.Printf("[Mongo] Insert failed: %v", err)
+		return err
+	}
+	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
+		o.ID = oid.Hex()
+		log.Printf("[Mongo] Inserted with ID: %s", o.ID)
+	}
+	return nil
 }
 
 func (r *OrderRepository) GetByID(ctx context.Context, id string) (*domain.Order, error) {

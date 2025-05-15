@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	// TODO: logger
+
 	cfg, err := config.New()
 	if err != nil {
 		log.Fatalf("config laod error: %v", err)

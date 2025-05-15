@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package statistics;
+
+option go_package = "github.com/Neroframe/ecommerce-platform/statistics-service/proto;statisticspb";
+
+// Specific user
+message UserOrderStatisticsRequest {
+    string user_id = 1;
+}
+
+
+message UserOrderStatisticsResponse {
+    int32 total_orders = 1;
+    // string peak_order_hour = 2; // e.g. 14 at 2AM
+}
+
+// All users
+message UserStatisticsRequest {}
+
+message UserStatisticsResponse {
+    int32 total_users = 1 ; 
+    int32 daily_active_users = 2 ; 
+}
+
+service StatisticsService { 
+    rpc GetUserOrdersStatistics(UserOrderStatisticsRequest) returns (UserOrderStatisticsResponse);
+    rpc GetUserStatistics(UserStatisticsRequest) returns (UserStatisticsResponse);
+}

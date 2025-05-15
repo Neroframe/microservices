@@ -11,25 +11,31 @@ import (
 )
 
 func main() {
-	// localhost:50051
+	// Connect to microservices
 	conn, err := grpc.Dial("inventory-service:50051", grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(3*time.Second))
 	if err != nil {
 		log.Fatal("failed to connect to inventory service:", err)
 	}
 	defer conn.Close()
 
-	// localhost:50052
 	orderConn, err := grpc.Dial("order-service:50051", grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(3*time.Second))
 	if err != nil {
 		log.Fatal("failed to connect to order service:", err)
 	}
 	defer orderConn.Close()
 
+	statsConn, err := grpc.Dial("statistics-service:50051", grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(3*time.Second))
+	if err != nil {
+		log.Fatal("failed to connect to statistics service:", err)
+	}
+	defer statsConn.Close()
+
+	// Init microservices
 	client.InitInventoryClient(conn)
 	client.InitOrderClient(orderConn)
+	client.InitStatisticsClient(statsConn)
 
 	r := gin.Default()
-
 	api := r.Group("/v1")
 	{
 		inventory := api.Group("/inventory")
@@ -59,6 +65,13 @@ func main() {
 		{
 			payments.POST("/", handler.CreatePayment)
 			payments.GET("/:id", handler.GetPaymentByID)
+		}
+
+		statistics := api.Group("/statistics")
+		{
+			statistics.GET("/user/:userId/orders", handler.GetUserOrdersStatistics)
+			statistics.GET("/users", handler.GetUserStatistics)
+
 		}
 	}
 

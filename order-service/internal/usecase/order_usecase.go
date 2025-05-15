@@ -24,7 +24,18 @@ func (u *orderUsecase) Create(ctx context.Context, o *domain.Order) error {
 	o.Status = "Pending"
 	o.CreatedAt = time.Now()
 	o.UpdatedAt = time.Now()
-	return u.repo.Create(ctx, o)
+
+	err := u.repo.Create(ctx, o)
+	if err != nil {
+		return err
+	}
+
+	event := domain.OrderCreatedEvent{
+		OrderID: o.ID,
+		UserID:  o.UserID,
+		Items:   o.Items,
+	}
+	return u.publisher.PublishOrderCreated(ctx, event)
 }
 
 func (u *orderUsecase) GetByID(ctx context.Context, id string) (*domain.Order, error) {
@@ -39,14 +50,34 @@ func (u *orderUsecase) Update(ctx context.Context, o *domain.Order) error {
 		return errors.New("missing order ID")
 	}
 	o.UpdatedAt = time.Now()
-	return u.repo.Update(ctx, o)
+	err := u.repo.Update(ctx, o)
+	if err != nil {
+		return err
+	}
+
+	event := domain.OrderUpdatedEvent{
+		OrderID: o.ID,
+		Status:  o.Status,
+	}
+
+	return u.publisher.PublishOrderUpdated(ctx, event)
 }
 
 func (u *orderUsecase) Delete(ctx context.Context, id string) error {
 	if id == "" {
 		return errors.New("missing order ID")
 	}
-	return u.repo.Delete(ctx, id)
+
+	err := u.repo.Delete(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	event := domain.OrderDeletedEvent{
+		OrderID: id,
+	}
+
+	return u.publisher.PublishOrderDeleted(ctx, event)
 }
 
 func (u *orderUsecase) ListByUserID(ctx context.Context, userID string) ([]*domain.Order, error) {

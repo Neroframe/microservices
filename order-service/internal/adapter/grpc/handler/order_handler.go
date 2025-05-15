@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log"
 
 	"github.com/Neroframe/ecommerce-platform/order-service/internal/domain"
 	orderpb "github.com/Neroframe/ecommerce-platform/order-service/proto"
@@ -19,13 +20,17 @@ func NewOrderHandler(uc domain.OrderUsecase) *OrderHandler {
 }
 
 func (h *OrderHandler) CreateOrder(ctx context.Context, req *orderpb.CreateOrderRequest) (*orderpb.OrderResponse, error) {
+	log.Printf("[gRPC] CreateOrder called: user_id=%s, items=%+v", req.UserId, req.Items)
+
 	order := &domain.Order{
 		UserID: req.UserId,
 		Items:  mapOrderItems(req.Items),
 	}
 	if err := h.orderUsecase.Create(ctx, order); err != nil {
+		log.Printf("[gRPC] CreateOrder failed: %v", err)
 		return nil, status.Errorf(codes.Internal, "create order failed: %v", err)
 	}
+	log.Printf("[gRPC] Order created with ID: %s", order.ID)
 	return toOrderResponse(order), nil
 }
 func (h *OrderHandler) GetOrderByID(ctx context.Context, req *orderpb.GetOrderRequest) (*orderpb.OrderResponse, error) {

@@ -12,9 +12,9 @@ import (
 // ────────────────────────────────────────────────────────────
 
 type OrderCreatedEvent struct {
-	UserID    string    `json:"user_id"`
-	OrderID   string    `json:"order_id"`
-	Timestamp time.Time `json:"timestamp"`
+	UserID    string    `json:"UserID"`
+	OrderID   string    `json:"OrderID"`
+	Timestamp time.Time `json:"Timestamp"` // If used
 }
 
 type UserRegisteredEvent struct {
