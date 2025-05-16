@@ -1,4 +1,4 @@
-package grpcserver
+package handler
 
 import (
 	"context"
@@ -6,13 +6,12 @@ import (
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/domain"
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/utils"
 	inventorypb "github.com/Neroframe/ecommerce-platform/inventory-service/proto"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-func (s *InventoryGRPCServer) CreateCategory(ctx context.Context, req *inventorypb.CreateCategoryRequest) (*inventorypb.CategoryResponse, error) {
+func (s *InventoryHandler) CreateCategory(ctx context.Context, req *inventorypb.CreateCategoryRequest) (*inventorypb.CategoryResponse, error) {
 	c := &domain.Category{
 		Name: req.Name,
 	}
@@ -28,7 +27,7 @@ func (s *InventoryGRPCServer) CreateCategory(ctx context.Context, req *inventory
 	}, nil
 }
 
-func (s *InventoryGRPCServer) GetCategoryByID(ctx context.Context, req *inventorypb.GetCategoryRequest) (*inventorypb.CategoryResponse, error) {
+func (s *InventoryHandler) GetCategoryByID(ctx context.Context, req *inventorypb.GetCategoryRequest) (*inventorypb.CategoryResponse, error) {
 	cat, err := s.categoryUsecase.GetByID(ctx, req.Id)
 	if err != nil {
 		utils.Log.Error("GetCategoryByID failed", "err", err)
@@ -44,7 +43,7 @@ func (s *InventoryGRPCServer) GetCategoryByID(ctx context.Context, req *inventor
 	}, nil
 }
 
-func (s *InventoryGRPCServer) UpdateCategory(ctx context.Context, req *inventorypb.UpdateCategoryRequest) (*inventorypb.CategoryResponse, error) {
+func (s *InventoryHandler) UpdateCategory(ctx context.Context, req *inventorypb.UpdateCategoryRequest) (*inventorypb.CategoryResponse, error) {
 	c := &domain.Category{
 		ID:   req.Id,
 		Name: req.Name,
@@ -61,7 +60,7 @@ func (s *InventoryGRPCServer) UpdateCategory(ctx context.Context, req *inventory
 	}, nil
 }
 
-func (s *InventoryGRPCServer) DeleteCategory(ctx context.Context, req *inventorypb.DeleteCategoryRequest) (*emptypb.Empty, error) {
+func (s *InventoryHandler) DeleteCategory(ctx context.Context, req *inventorypb.DeleteCategoryRequest) (*emptypb.Empty, error) {
 	if err := s.categoryUsecase.Delete(ctx, req.Id); err != nil {
 		utils.Log.Error("DeleteCategory failed", "err", err)
 		return nil, status.Errorf(codes.InvalidArgument, err.Error())
@@ -69,7 +68,7 @@ func (s *InventoryGRPCServer) DeleteCategory(ctx context.Context, req *inventory
 	return &emptypb.Empty{}, nil
 }
 
-func (s *InventoryGRPCServer) ListCategories(ctx context.Context, _ *inventorypb.ListCategoriesRequest) (*inventorypb.ListCategoriesResponse, error) {
+func (s *InventoryHandler) ListCategories(ctx context.Context, _ *inventorypb.ListCategoriesRequest) (*inventorypb.ListCategoriesResponse, error) {
 	categories, err := s.categoryUsecase.List(ctx)
 	if err != nil {
 		utils.Log.Error("ListCategories failed", "err", err)

@@ -1,4 +1,4 @@
-package repository
+package mongo
 
 import (
 	"context"
@@ -11,15 +11,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type mongoProductRepo struct {
+type ProductRepository struct {
 	collection *mongo.Collection
 }
 
-func NewProductMongoRepo(db *mongo.Database) domain.ProductRepository {
-	return &mongoProductRepo{collection: db.Collection("products")}
+func NewProductRepository(db *mongo.Database) *ProductRepository {
+	return &ProductRepository{collection: db.Collection("products")}
 }
 
-func (r *mongoProductRepo) Create(ctx context.Context, p *domain.Product) error {
+func (r *ProductRepository) Create(ctx context.Context, p *domain.Product) error {
 	// utils.Log.Info("Creating product", "name", p.Name)
 
 	res, err := r.collection.InsertOne(ctx, p)
@@ -38,7 +38,7 @@ func (r *mongoProductRepo) Create(ctx context.Context, p *domain.Product) error 
 	return nil
 }
 
-func (r *mongoProductRepo) GetByID(ctx context.Context, id string) (*domain.Product, error) {
+func (r *ProductRepository) GetByID(ctx context.Context, id string) (*domain.Product, error) {
 	// utils.Log.Info("Fetching product by ID", "id", id)
 
 	oid, err := primitive.ObjectIDFromHex(id)
@@ -62,7 +62,7 @@ func (r *mongoProductRepo) GetByID(ctx context.Context, id string) (*domain.Prod
 	return &product, nil
 }
 
-func (r *mongoProductRepo) Update(ctx context.Context, p *domain.Product) error {
+func (r *ProductRepository) Update(ctx context.Context, p *domain.Product) error {
 	// utils.Log.Info("Updating product", "id", p.ID)
 
 	oid, err := primitive.ObjectIDFromHex(p.ID)
@@ -87,7 +87,7 @@ func (r *mongoProductRepo) Update(ctx context.Context, p *domain.Product) error 
 	return nil
 }
 
-func (r *mongoProductRepo) Delete(ctx context.Context, id string) error {
+func (r *ProductRepository) Delete(ctx context.Context, id string) error {
 	// utils.Log.Info("Deleting product", "id", id)
 
 	oid, err := primitive.ObjectIDFromHex(id)
@@ -103,7 +103,7 @@ func (r *mongoProductRepo) Delete(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *mongoProductRepo) List(ctx context.Context) ([]*domain.Product, error) {
+func (r *ProductRepository) List(ctx context.Context) ([]*domain.Product, error) {
 	// utils.Log.Info("Listing all products")
 
 	cursor, err := r.collection.Find(ctx, bson.M{})

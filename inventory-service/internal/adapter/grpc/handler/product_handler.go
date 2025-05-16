@@ -1,4 +1,4 @@
-package grpcserver
+package handler
 
 import (
 	"context"
@@ -6,13 +6,12 @@ import (
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/domain"
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/utils"
 	inventorypb "github.com/Neroframe/ecommerce-platform/inventory-service/proto"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-func (s *InventoryGRPCServer) GetProductByID(ctx context.Context, req *inventorypb.GetProductRequest) (*inventorypb.ProductResponse, error) {
+func (s *InventoryHandler) GetProductByID(ctx context.Context, req *inventorypb.GetProductRequest) (*inventorypb.ProductResponse, error) {
 	// utils.Log.Info("gRPC GetProductByID", "id", req.Id)
 
 	product, err := s.productUsecase.GetByID(ctx, req.Id)
@@ -36,7 +35,7 @@ func (s *InventoryGRPCServer) GetProductByID(ctx context.Context, req *inventory
 	}, nil
 }
 
-func (s *InventoryGRPCServer) CreateProduct(ctx context.Context, req *inventorypb.CreateProductRequest) (*inventorypb.ProductResponse, error) {
+func (s *InventoryHandler) CreateProduct(ctx context.Context, req *inventorypb.CreateProductRequest) (*inventorypb.ProductResponse, error) {
 	// utils.Log.Info("gRPC CreateProduct", "name", req.Name)
 
 	product := &domain.Product{
@@ -61,7 +60,7 @@ func (s *InventoryGRPCServer) CreateProduct(ctx context.Context, req *inventoryp
 	}, nil
 }
 
-func (s *InventoryGRPCServer) UpdateProduct(ctx context.Context, req *inventorypb.UpdateProductRequest) (*inventorypb.ProductResponse, error) {
+func (s *InventoryHandler) UpdateProduct(ctx context.Context, req *inventorypb.UpdateProductRequest) (*inventorypb.ProductResponse, error) {
 	// utils.Log.Info("gRPC UpdateProduct", "id", req.Id)
 
 	current, err := s.productUsecase.GetByID(ctx, req.Id)
@@ -98,7 +97,7 @@ func (s *InventoryGRPCServer) UpdateProduct(ctx context.Context, req *inventoryp
 	}, nil
 }
 
-func (s *InventoryGRPCServer) DeleteProduct(ctx context.Context, req *inventorypb.DeleteProductRequest) (*emptypb.Empty, error) {
+func (s *InventoryHandler) DeleteProduct(ctx context.Context, req *inventorypb.DeleteProductRequest) (*emptypb.Empty, error) {
 	// utils.Log.Info("gRPC DeleteProduct", "id", req.Id)
 
 	if err := s.productUsecase.Delete(ctx, req.Id); err != nil {
@@ -110,7 +109,7 @@ func (s *InventoryGRPCServer) DeleteProduct(ctx context.Context, req *inventoryp
 	return &emptypb.Empty{}, nil
 }
 
-func (s *InventoryGRPCServer) ListProducts(ctx context.Context, _ *inventorypb.ListProductsRequest) (*inventorypb.ListProductsResponse, error) {
+func (s *InventoryHandler) ListProducts(ctx context.Context, _ *inventorypb.ListProductsRequest) (*inventorypb.ListProductsResponse, error) {
 	// utils.Log.Info("gRPC ListProducts")
 
 	products, err := s.productUsecase.List(ctx)

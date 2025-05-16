@@ -9,11 +9,13 @@ import (
 
 type categoryUsecase struct {
 	categoryRepo domain.CategoryRepository
+	publisher    domain.InventoryEventPublisher
 }
 
-func NewCategoryUsecase(repo domain.CategoryRepository) domain.CategoryUsecase {
+func NewCategoryUsecase(repo domain.CategoryRepository, p domain.InventoryEventPublisher) domain.CategoryUsecase {
 	return &categoryUsecase{
 		categoryRepo: repo,
+		publisher:    p,
 	}
 }
 

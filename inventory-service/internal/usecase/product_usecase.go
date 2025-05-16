@@ -2,12 +2,8 @@ package usecase
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
-
-	"github.com/redis/go-redis/v9"
 
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/domain"
 )
@@ -15,14 +11,20 @@ import (
 // productUsecase wraps repository and Redis client for caching
 // and implements domain.ProductUsecase
 type productUsecase struct {
-	productRepo domain.ProductRepository
-	cache       *redis.Client
-	cacheTTL    time.Duration
+	productRepo   domain.ProductRepository
+	publisher     domain.InventoryEventPublisher
+	inMemoryCache domain.ProductMemoryCache
+	redisCache    domain.ProductRedisCache
 }
 
 // NewProductUsecase constructs a usecase with caching support
-func NewProductUsecase(repo domain.ProductRepository, cache *redis.Client, cacheTTL time.Duration) domain.ProductUsecase {
-	return &productUsecase{productRepo: repo, cache: cache, cacheTTL: cacheTTL}
+func NewProductUsecase(repo domain.ProductRepository, pub domain.InventoryEventPublisher, inmemory domain.ProductMemoryCache, redis domain.ProductRedisCache) domain.ProductUsecase {
+	return &productUsecase{
+		productRepo:   repo,
+		publisher:     pub,
+		inMemoryCache: inmemory,
+		redisCache:    redis,
+	}
 }
 
 // Create persists a new product, caches its detail, and invalidates the list
@@ -48,19 +50,23 @@ func (u *productUsecase) Create(ctx context.Context, p *domain.Product) error {
 		return err
 	}
 
-	// cache detail
-	data, err := json.Marshal(p)
-	if err != nil {
-		fmt.Printf("cache marshal detail error: %v\n", err)
-	} else {
-		if err := u.cache.Set(ctx, detailKey(p.ID), data, u.cacheTTL).Err(); err != nil {
-			fmt.Printf("cache set detail error: %v\n", err)
-		}
+	// set inmemory cache
+	u.inMemoryCache.Set(p)
+
+	// set redis cache
+	if err := u.redisCache.Set(ctx, p); err != nil {
+		return fmt.Errorf("redisCache.Set: %w", err)
 	}
 
-	// invalidate list cache
-	if err := u.cache.Del(ctx, listKey()).Err(); err != nil {
-		fmt.Printf("cache delete list error: %v\n", err)
+	// NATS publish
+	event := domain.ProductCreatedEvent{
+		ID:         p.ID,
+		Name:       p.Name,
+		Price:      int(p.Price),
+		CategoryID: p.Category,
+	}
+	if err := u.publisher.PublishProductCreated(ctx, event); err != nil {
+		return fmt.Errorf("publisher.PublishProductCreated: %w", err)
 	}
 
 	return nil
@@ -68,107 +74,76 @@ func (u *productUsecase) Create(ctx context.Context, p *domain.Product) error {
 
 // List returns all products, attempting cache first
 func (u *productUsecase) List(ctx context.Context) ([]*domain.Product, error) {
-	// try cache
-	data, err := u.cache.Get(ctx, listKey()).Result()
-	if err == nil {
-		var prods []*domain.Product
-		if err := json.Unmarshal([]byte(data), &prods); err == nil {
-			return prods, nil
-		}
-		fmt.Printf("cache unmarshal list error: %v\n", err)
+	// inmemory cache
+	if products, ok := u.inMemoryCache.GetList(); ok {
+		return products, nil
 	}
 
-	// cache miss: fetch from DB
-	prods, err := u.productRepo.List(ctx)
+	// redis cache
+	products, err := u.redisCache.GetList(ctx)
+	if err == nil && products != nil {
+		u.inMemoryCache.SetMany(products) // warm memory
+		return products, nil
+	}
+
+	// mongoDB
+	products, err = u.productRepo.List(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("productRepo.GetAll: %w", err)
 	}
 
-	// cache list
-	b, err := json.Marshal(prods)
-	if err != nil {
-		fmt.Printf("cache marshal list error: %v\n", err)
-	} else {
-		if err := u.cache.Set(ctx, listKey(), b, u.cacheTTL).Err(); err != nil {
-			fmt.Printf("cache set list error: %v\n", err)
-		}
-	}
+	// update cache
+	u.inMemoryCache.SetMany(products)
+	_ = u.redisCache.SetList(ctx, products)
 
-	return prods, nil
+	return products, nil
 }
 
-// GetByID returns a single product, attempting cache first
 func (u *productUsecase) GetByID(ctx context.Context, id string) (*domain.Product, error) {
-	// try cache
-	data, err := u.cache.Get(ctx, detailKey(id)).Result()
-	if err == nil {
-		var p domain.Product
-		if err := json.Unmarshal([]byte(data), &p); err == nil {
-			return &p, nil
-		}
-		fmt.Printf("cache unmarshal detail error: %v\n", err)
+	// try inmemory
+	if product, ok := u.inMemoryCache.Get(id); ok {
+		return product, nil
 	}
 
-	// cache miss: fetch from DB
-	p, err := u.productRepo.GetByID(ctx, id)
+	// try Redis
+	product, err := u.redisCache.Get(ctx, id)
+	if err == nil && product != nil {
+		u.inMemoryCache.Set(product) // warm in-memory
+		return product, nil
+	}
+
+	//  DB
+	product, err = u.productRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("productRepo.GetByID: %w", err)
+	}
+	if product == nil {
+		return nil, nil // not found
 	}
 
-	// cache detail
-	b, err := json.Marshal(p)
-	if err != nil {
-		fmt.Printf("cache marshal detail error: %v\n", err)
-	} else {
-		if err := u.cache.Set(ctx, detailKey(id), b, u.cacheTTL).Err(); err != nil {
-			fmt.Printf("cache set detail error: %v\n", err)
-		}
-	}
+	// Warm both caches
+	u.inMemoryCache.Set(product)
+	_ = u.redisCache.Set(ctx, product)
 
-	return p, nil
+	return product, nil
 }
 
-// RefreshProductsCache reloads all products from DB into cache (list and details)
 func (u *productUsecase) RefreshProductsCache(ctx context.Context) error {
-	// fetch all products
-	prods, err := u.productRepo.List(ctx)
+	// 1. Load all products from DB
+	products, err := u.productRepo.List(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("productRepo.List: %w", err)
 	}
 
-	// cache list
-	b, err := json.Marshal(prods)
-	if err != nil {
-		fmt.Printf("cache marshal list error: %v\n", err)
-	} else {
-		if err := u.cache.Set(ctx, listKey(), b, u.cacheTTL).Err(); err != nil {
-			fmt.Printf("cache set list error: %v\n", err)
-		}
-	}
+	// 2. Refresh in-memory cache
+	u.inMemoryCache.SetMany(products)
 
-	// cache each detail
-	for _, p := range prods {
-		bp, err := json.Marshal(p)
-		if err != nil {
-			fmt.Printf("cache marshal detail error for id %s: %v\n", p.ID, err)
-			continue
-		}
-		if err := u.cache.Set(ctx, detailKey(p.ID), bp, u.cacheTTL).Err(); err != nil {
-			fmt.Printf("cache set detail error for id %s: %v\n", p.ID, err)
-		}
+	// 3. Refresh Redis cache
+	if err := u.redisCache.SetList(ctx, products); err != nil {
+		return fmt.Errorf("redisCache.SetList: %w", err)
 	}
 
 	return nil
-}
-
-// listKey returns the Redis key for the product list
-func listKey() string {
-	return "inventory:products:list"
-}
-
-// detailKey returns the Redis key for an individual product
-func detailKey(id string) string {
-	return fmt.Sprintf("inventory:products:%s", id)
 }
 
 func (u *productUsecase) Update(ctx context.Context, p *domain.Product) error {
@@ -191,12 +166,48 @@ func (u *productUsecase) Update(ctx context.Context, p *domain.Product) error {
 
 	p.NormalizeName()
 
-	return u.productRepo.Update(ctx, p)
+	if err := u.productRepo.Update(ctx, p); err != nil {
+		return err
+	}
+
+	// caches
+	u.inMemoryCache.Set(p)
+	_ = u.redisCache.Set(ctx, p)
+
+	// publish
+	evt := domain.ProductUpdatedEvent{
+		ID:         p.ID,
+		Name:       p.Name,
+		Price:      int(p.Price),
+		CategoryID: p.Category,
+	}
+	if err := u.publisher.PublishProductUpdated(ctx, evt); err != nil {
+		return fmt.Errorf("publisher.PublishProductUpdated: %w", err)
+	}
+
+	return nil
 }
 
 func (u *productUsecase) Delete(ctx context.Context, id string) error {
 	if id == "" {
 		return errors.New("product ID cannot be empty")
 	}
-	return u.productRepo.Delete(ctx, id)
+
+	if err := u.productRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	// invalidate caches
+	u.inMemoryCache.Delete(id)
+	err := u.redisCache.Delete(ctx, id)
+	if err != nil {
+		return fmt.Errorf("redisCache.Delete error: %w", err)
+	}
+
+	// publish
+	if err := u.publisher.PublishProductDeleted(ctx, domain.ProductDeletedEvent{ID: id}); err != nil {
+		return fmt.Errorf("publisher.PublishProductDeleted: %w", err)
+	}
+
+	return nil
 }

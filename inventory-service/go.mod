@@ -3,6 +3,7 @@ module github.com/Neroframe/ecommerce-platform/inventory-service
 go 1.23.6
 
 require (
+	github.com/caarlos0/env/v10 v10.0.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang/protobuf v1.5.4
 	github.com/nats-io/nats.go v1.42.0

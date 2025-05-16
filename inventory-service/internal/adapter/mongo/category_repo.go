@@ -1,4 +1,4 @@
-package repository
+package mongo
 
 import (
 	"context"
@@ -11,15 +11,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type mongoCategoryRepo struct {
+type CategoryRepository struct {
 	collection *mongo.Collection
 }
 
-func NewCategoryMongoRepo(db *mongo.Database) domain.CategoryRepository {
-	return &mongoCategoryRepo{collection: db.Collection("categories")}
+func NewCategoryRepository(db *mongo.Database) *CategoryRepository {
+	return &CategoryRepository{collection: db.Collection("category")}
 }
 
-func (r *mongoCategoryRepo) Create(ctx context.Context, c *domain.Category) error {
+func (r *CategoryRepository) Create(ctx context.Context, c *domain.Category) error {
 	res, err := r.collection.InsertOne(ctx, c)
 	if err != nil {
 		utils.Log.Error("Insert category failed", "err", err)
@@ -34,7 +34,7 @@ func (r *mongoCategoryRepo) Create(ctx context.Context, c *domain.Category) erro
 	return nil
 }
 
-func (r *mongoCategoryRepo) GetByID(ctx context.Context, id string) (*domain.Category, error) {
+func (r *CategoryRepository) GetByID(ctx context.Context, id string) (*domain.Category, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, errors.New("invalid category ID format")
@@ -53,7 +53,7 @@ func (r *mongoCategoryRepo) GetByID(ctx context.Context, id string) (*domain.Cat
 	return &c, nil
 }
 
-func (r *mongoCategoryRepo) Update(ctx context.Context, c *domain.Category) error {
+func (r *CategoryRepository) Update(ctx context.Context, c *domain.Category) error {
 	oid, err := primitive.ObjectIDFromHex(c.ID)
 	if err != nil {
 		return errors.New("invalid category ID format")
@@ -68,7 +68,7 @@ func (r *mongoCategoryRepo) Update(ctx context.Context, c *domain.Category) erro
 	return err
 }
 
-func (r *mongoCategoryRepo) Delete(ctx context.Context, id string) error {
+func (r *CategoryRepository) Delete(ctx context.Context, id string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return errors.New("invalid category ID format")
@@ -77,7 +77,7 @@ func (r *mongoCategoryRepo) Delete(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *mongoCategoryRepo) List(ctx context.Context) ([]*domain.Category, error) {
+func (r *CategoryRepository) List(ctx context.Context) ([]*domain.Category, error) {
 	cursor, err := r.collection.Find(ctx, bson.M{})
 	if err != nil {
 		return nil, err
