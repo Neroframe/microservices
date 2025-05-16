@@ -10,11 +10,12 @@ services:
     image: nats:2.9-alpine
     ports:
       - "4222:4222"
+
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-      
+
   api-gateway:
     build: ./api-gateway
     ports:
@@ -32,22 +33,45 @@ services:
     ports:
       - "50051:50051"
     environment:
-      # Redis settings
-      - REDIS_HOSTS=redis:6379
-      - REDIS_PASSWORD=
-      - REDIS_TLS_ENABLE=false
-      - REDIS_DIAL_TIMEOUT=5s
-      - REDIS_READ_TIMEOUT=3s
-      - REDIS_WRITE_TIMEOUT=3s
-      # Cache settings
-      - REDIS_CACHE_CLIENT_TTL=12h
-      - CLIENT_REFRESH_TIME=1m
-      # Mongo settings
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB_NAME=inventory_db
-      - MONGO_TIMEOUT=3s
+      # Version
+      VERSION: "1.0.0"
+
+      # MongoDB
+      MONGO_DB_URI: "mongodb:27017"
+      MONGO_DB: "inventory_db"
+      MONGO_USERNAME: ""
+      MONGO_PWD: ""
+      MONGO_DB_REPLICA_SET: ""
+      MONGO_WRITE_CONCERN: "majority"
+      MONGO_TLS_FILE_PATH: ""
+      MONGO_TLS_ENABLE: "false"
+
       # gRPC
-      - GRPC_PORT=50051
+      GRPC_PORT: "50051"
+      GRPC_MAX_MESSAGE_SIZE_MIB: "12"
+      GRPC_MAX_CONNECTION_AGE: "30s"
+      GRPC_MAX_CONNECTION_AGE_GRACE: "10s"
+
+      # NATS
+      NATS_HOSTS: "nats://nats:4222"
+      NATS_NKEY: "SUACSSL3UAHUDXKFSNVUZRF5UHPMWZ6BFDTJ7M6USDXIEDNPPQYYYCU3VY"
+      NATS_IS_TEST: "true"
+      NATS_PRODUCT_CREATED_SUBJECT: "product.created"
+      NATS_PRODUCT_UPDATED_SUBJECT: "product.updated"
+      NATS_PRODUCT_DELETED_SUBJECT: "product.deleted"
+
+      # Redis
+      REDIS_HOSTS: "redis:6379"
+      REDIS_PASSWORD: ""
+      REDIS_TLS_ENABLE: "false"
+      REDIS_DIAL_TIMEOUT: "60s"
+      REDIS_WRITE_TIMEOUT: "60s"
+      REDIS_READ_TIMEOUT: "30s"
+
+      # Cache policy
+      REDIS_CACHE_CLIENT_TTL: "24h"
+      CLIENT_REFRESH_TIME: "12h"
+
 
   order-service:
     build: ./order-service
@@ -57,6 +81,9 @@ services:
       - mongodb
       - nats
     environment:
+      # Version
+      VERSION: "1.0.0"
+      
       # MongoDB
       MONGO_DB_URI:              "mongodb:27017"
       MONGO_DB:                  "orders_db"
@@ -66,12 +93,14 @@ services:
       MONGO_WRITE_CONCERN:       "majority"
       MONGO_TLS_FILE_PATH:       ""
       MONGO_TLS_ENABLE:          "false"
+
       # gRPC
       GRPC_PORT:                 "50051"
       GRPC_MAX_MESSAGE_SIZE_MIB: "12"
       GRPC_MAX_CONNECTION_AGE:   "30s"
       GRPC_MAX_CONNECTION_AGE_GRACE: "10s"
-      # NATS (publish only)
+
+      # NATS
       NATS_HOSTS:                "nats://nats:4222"
       NATS_NKEY:                 "SUACSSL3UAHUDXKFSNVUZRF5UHPMWZ6BFDTJ7M6USDXIEDNPPQYYYCU3VY"
       NATS_IS_TEST:              "true"
@@ -79,38 +108,44 @@ services:
       NATS_ORDER_UPDATED_SUBJECT: "order.updated"
       NATS_ORDER_DELETED_SUBJECT: "order.deleted"
 
-
   statistics-service:
     build: ./statistics-service
     ports:
-      - "50053:50051"    # host:container
+      - "50053:50051"
     depends_on:
       - mongodb
       - nats
     environment:
+      # Version
       VERSION:                    "1.0.0"
+
+      # MongoDB
+      MONGO_DB_URI:               "mongodb:27017"
+      MONGO_DB:                   "statistics_db"
+      MONGO_USERNAME:             ""
+      MONGO_PWD:                  ""
+      MONGO_DB_REPLICA_SET:       ""
+      MONGO_WRITE_CONCERN:        "majority"
+      MONGO_TLS_FILE_PATH:        ""
+      MONGO_TLS_ENABLE:           "false"
+
       # gRPC
       GRPC_PORT:                  "50051"
       GRPC_MAX_MESSAGE_SIZE_MIB:  "12"
       GRPC_MAX_CONNECTION_AGE:    "30s"
       GRPC_MAX_CONNECTION_AGE_GRACE: "10s"
-      # Mongo
-      MONGO_DB_URI:                 "mongodb:27017"
-      MONGO_DB:                     "statistics_db"
-      MONGO_USERNAME:               ""           
-      MONGO_PWD:                    ""
-      MONGO_DB_REPLICA_SET:         ""
-      MONGO_WRITE_CONCERN:          "majority"
-      MONGO_TLS_FILE_PATH:          ""
-      MONGO_TLS_ENABLE:             "false"
+
       # NATS
       NATS_HOSTS:                 "nats://nats:4222"
       NATS_NKEY:                  "SUACSSL3UAHUDXKFSNVUZRF5UHPMWZ6BFDTJ7M6USDXIEDNPPQYYYCU3VY"
       NATS_IS_TEST:               "true"
-      # Subjects
-      NATS_ORDER_CREATED_SUBJECT:   "order.created"
+      NATS_ORDER_CREATED_SUBJECT: "order.created"
+      NATS_ORDER_UPDATED_SUBJECT: "order.updated"
+      NATS_ORDER_DELETED_SUBJECT: "order.deleted"
+      NATS_PRODUCT_CREATED_SUBJECT: "product.created"
+      NATS_PRODUCT_UPDATED_SUBJECT: "product.updated"
+      NATS_PRODUCT_DELETED_SUBJECT: "product.deleted"
       NATS_USER_REGISTERED_SUBJECT: "user.registered"
-
 
 volumes:
   mongo-data:

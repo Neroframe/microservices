@@ -8,8 +8,6 @@ import (
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/domain"
 )
 
-// productUsecase wraps repository and Redis client for caching
-// and implements domain.ProductUsecase
 type productUsecase struct {
 	productRepo   domain.ProductRepository
 	publisher     domain.InventoryEventPublisher
@@ -17,7 +15,6 @@ type productUsecase struct {
 	redisCache    domain.ProductRedisCache
 }
 
-// NewProductUsecase constructs a usecase with caching support
 func NewProductUsecase(repo domain.ProductRepository, pub domain.InventoryEventPublisher, inmemory domain.ProductMemoryCache, redis domain.ProductRedisCache) domain.ProductUsecase {
 	return &productUsecase{
 		productRepo:   repo,
@@ -27,7 +24,6 @@ func NewProductUsecase(repo domain.ProductRepository, pub domain.InventoryEventP
 	}
 }
 
-// Create persists a new product, caches its detail, and invalidates the list
 func (u *productUsecase) Create(ctx context.Context, p *domain.Product) error {
 	if p.Name == "" {
 		return errors.New("product name cannot be empty")
@@ -72,7 +68,6 @@ func (u *productUsecase) Create(ctx context.Context, p *domain.Product) error {
 	return nil
 }
 
-// List returns all products, attempting cache first
 func (u *productUsecase) List(ctx context.Context) ([]*domain.Product, error) {
 	// inmemory cache
 	if products, ok := u.inMemoryCache.GetList(); ok {
@@ -108,7 +103,7 @@ func (u *productUsecase) GetByID(ctx context.Context, id string) (*domain.Produc
 	// try Redis
 	product, err := u.redisCache.Get(ctx, id)
 	if err == nil && product != nil {
-		u.inMemoryCache.Set(product) // warm in-memory
+		u.inMemoryCache.Set(product) // warm inmemory
 		return product, nil
 	}
 
@@ -129,16 +124,16 @@ func (u *productUsecase) GetByID(ctx context.Context, id string) (*domain.Produc
 }
 
 func (u *productUsecase) RefreshProductsCache(ctx context.Context) error {
-	// 1. Load all products from DB
+	// load all products from DB
 	products, err := u.productRepo.List(ctx)
 	if err != nil {
 		return fmt.Errorf("productRepo.List: %w", err)
 	}
 
-	// 2. Refresh in-memory cache
+	// refresh inmemory cache
 	u.inMemoryCache.SetMany(products)
 
-	// 3. Refresh Redis cache
+	// refresh Redis cache
 	if err := u.redisCache.SetList(ctx, products); err != nil {
 		return fmt.Errorf("redisCache.SetList: %w", err)
 	}

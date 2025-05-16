@@ -25,11 +25,10 @@ type App struct {
 	natsConsumer *natsconsumer.PubSub
 }
 
-// returns an App instance
 func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	log.Printf("Starting %s...", serviceName)
 
-	// MongoDB connection
+	// MongoDB 
 	mdb, err := mongocon.NewDB(ctx, cfg.Mongo)
 	if err != nil {
 		return nil, fmt.Errorf("mongo connect: %w", err)
@@ -53,10 +52,34 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	pubsub := natsconsumer.NewPubSub(nc)
 	handler := natsadapter.NewStatisticsHandler(uc)
 
+	// Order created, updated, deleted events
 	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
 		Subject: cfg.Nats.NatsSubjects.OrderCreated,
 		Handler: handler.HandleOrderCreated,
 	})
+	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
+		Subject: cfg.Nats.NatsSubjects.OrderUpdated,
+		Handler: handler.HandleOrderUpdated,
+	})
+	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
+		Subject: cfg.Nats.NatsSubjects.OrderDeleted,
+		Handler: handler.HandleOrderDeleted,
+	})
+
+	// Product created, updated, deleted events
+	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
+		Subject: cfg.Nats.NatsSubjects.ProductCreated,
+		Handler: handler.HandleProductCreated,
+	})
+	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
+		Subject: cfg.Nats.NatsSubjects.ProductUpdated,
+		Handler: handler.HandleProductUpdated,
+	})
+	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
+		Subject: cfg.Nats.NatsSubjects.ProductDeleted,
+		Handler: handler.HandleProductDeleted,
+	})
+
 	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
 		Subject: cfg.Nats.NatsSubjects.UserRegistered,
 		Handler: handler.HandleUserRegistered,
@@ -68,7 +91,7 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	}, nil
 }
 
-// starts the gRPC server and NATS consumer - blocking until an error or OS signal.
+// starts the gRPC server and NATS consumer - blocking until an error or OS signal
 func (a *App) Run() error {
 	errCh := make(chan error, 1)
 	ctx, cancel := context.WithCancel(context.Background())

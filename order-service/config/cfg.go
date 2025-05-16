@@ -9,9 +9,11 @@ import (
 
 type (
 	Config struct {
-		Mongo  mongo.Config
-		Server Server
-		Nats   Nats
+		Version string `env:"VERSION" envDefault:"1.0.0"`
+
+		Mongo   mongo.Config
+		Server  Server
+		Nats    Nats
 	}
 
 	Server struct {
@@ -33,9 +35,9 @@ type (
 	}
 
 	NatsSubjects struct {
-		OrderCreatedSubject  string   `env:"NATS_ORDER_CREATED_SUBJECT,notEmpty"`
-		OrderUpdatedSubject  string   `env:"NATS_ORDER_UPDATED_SUBJECT,notEmpty"`
-		OrderDeletedSubject  string   `env:"NATS_ORDER_DELETED_SUBJECT,notEmpty"`
+		OrderCreatedSubject string `env:"NATS_ORDER_CREATED_SUBJECT,notEmpty"`
+		OrderUpdatedSubject string `env:"NATS_ORDER_UPDATED_SUBJECT,notEmpty"`
+		OrderDeletedSubject string `env:"NATS_ORDER_DELETED_SUBJECT,notEmpty"`
 	}
 )
 

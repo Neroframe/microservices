@@ -14,7 +14,7 @@ type InventoryEventPublisher struct {
 	client *nats.Client
 }
 
-var _ domain.InventoryEventPublisher = (*InventoryEventPublisher)(nil) // compile-time check
+var _ domain.InventoryEventPublisher = (*InventoryEventPublisher)(nil) 
 
 func NewInventoryEventPublisher(client *nats.Client) *InventoryEventPublisher {
 	return &InventoryEventPublisher{client: client}

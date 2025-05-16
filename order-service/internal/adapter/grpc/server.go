@@ -1,4 +1,3 @@
-// internal/adapter/grpc/api.go
 package grpc
 
 import (
@@ -91,6 +90,6 @@ func (api *API) setOptions(ctx context.Context) []grpc.ServerOption {
 			MaxConnectionAge:      api.cfg.MaxConnectionAge,
 			MaxConnectionAgeGrace: api.cfg.MaxConnectionAgeGrace,
 		}),
-		grpc.MaxRecvMsgSize(int(api.cfg.MaxRecvMsgSizeMiB) * 1024 * 1024),
+		grpc.MaxRecvMsgSize(int(api.cfg.MaxRecvMsgSizeMiB) * 1024 * 1024), // MaxRecvSize * 1 MB
 	}
 }

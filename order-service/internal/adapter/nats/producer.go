@@ -10,11 +10,11 @@ import (
 	"github.com/Neroframe/ecommerce-platform/order-service/pkg/nats"
 )
 
+var _ domain.OrderEventPublisher = (*OrderEventPublisher)(nil)
+
 type OrderEventPublisher struct {
 	client *nats.Client
 }
-
-var _ domain.OrderEventPublisher = (*OrderEventPublisher)(nil) // compile-time check
 
 func NewOrderEventPublisher(client *nats.Client) *OrderEventPublisher {
 	return &OrderEventPublisher{client: client}

@@ -17,16 +17,14 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// API wraps the gRPC server for the statistics service.
 type API struct {
 	s    *grpc.Server
 	cfg  config.GRPCServer
-	uc   usecase.StatisticsUsecase
+	uc   *usecase.StatisticsUsecase
 	addr string
 }
 
-// New creates a new gRPC API with the given configuration and usecase.
-func New(cfg config.GRPCServer, uc usecase.StatisticsUsecase) *API {
+func New(cfg config.GRPCServer, uc *usecase.StatisticsUsecase) *API {
 	return &API{
 		cfg:  cfg,
 		uc:   uc,
@@ -34,7 +32,7 @@ func New(cfg config.GRPCServer, uc usecase.StatisticsUsecase) *API {
 	}
 }
 
-// Run starts the gRPC server asynchronously, reporting startup errors on errCh.
+// Starts the gRPC server asynchronously
 func (a *API) Run(ctx context.Context, errCh chan<- error) {
 	go func() {
 		log.Printf("gRPC server starting on %s", a.addr)
@@ -44,7 +42,7 @@ func (a *API) Run(ctx context.Context, errCh chan<- error) {
 	}()
 }
 
-// Stop gracefully stops the gRPC server. Blocks until done or ctx is cancelled.
+// Start and block until done or ctx is cancelled
 func (a *API) Stop(ctx context.Context) error {
 	if a.s == nil {
 		return nil
@@ -63,7 +61,6 @@ func (a *API) Stop(ctx context.Context) error {
 	return nil
 }
 
-// run configures and starts the underlying gRPC Server.
 func (a *API) run(ctx context.Context) error {
 	// build server options
 	opts := a.setOptions(ctx)
@@ -89,7 +86,7 @@ func (a *API) run(ctx context.Context) error {
 	return nil
 }
 
-// setOptions constructs the gRPC server options from config.
+// constructs the gRPC server options from config
 func (a *API) setOptions(ctx context.Context) []grpc.ServerOption {
 	return []grpc.ServerOption{
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{

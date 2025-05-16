@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-	// init logger
 	utils.InitLogger()
 	utils.Log.Info("starting inventory-service…")
 

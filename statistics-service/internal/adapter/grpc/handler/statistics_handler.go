@@ -10,11 +10,10 @@ import (
 
 type StatisticsHandler struct {
 	statisticspb.UnimplementedStatisticsServiceServer
-	uc usecase.StatisticsUsecase
+	uc *usecase.StatisticsUsecase
 }
 
-// Inject usecase into the handler
-func NewStatisticsHandler(uc usecase.StatisticsUsecase) *StatisticsHandler {
+func NewStatisticsHandler(uc *usecase.StatisticsUsecase) *StatisticsHandler {
 	return &StatisticsHandler{
 		uc: uc,
 	}

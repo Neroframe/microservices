@@ -9,11 +9,11 @@ import (
 
 type (
 	Config struct {
+		Version string `env:"VERSION"`
+
 		Mongo  mongo.Config
 		Server Server
 		Nats   Nats
-
-		Version string `env:"VERSION"`
 	}
 
 	Server struct {
@@ -27,7 +27,6 @@ type (
 		MaxConnectionAgeGrace time.Duration `env:"GRPC_MAX_CONNECTION_AGE_GRACE" envDefault:"10s"`
 	}
 
-	// Nats configuration for main application
 	Nats struct {
 		Hosts        []string `env:"NATS_HOSTS,notEmpty" envSeparator:","`
 		NKey         string   `env:"NATS_NKEY" envDefault:"SUACSSL3UAHUDXKFSNVUZRF5UHPMWZ6BFDTJ7M6USDXIEDNPPQYYYCU3VY"`
@@ -35,9 +34,15 @@ type (
 		NatsSubjects NatsSubjects
 	}
 
-	// NatsSubjects for main application
 	NatsSubjects struct {
-		OrderCreated   string `env:"NATS_ORDER_CREATED_SUBJECT,notEmpty"`
+		OrderCreated string `env:"NATS_ORDER_CREATED_SUBJECT,notEmpty"`
+		OrderUpdated string `env:"NATS_ORDER_UPDATED_SUBJECT,notEmpty"`
+		OrderDeleted string `env:"NATS_ORDER_DELETED_SUBJECT,notEmpty"`
+
+		ProductCreated string `env:"NATS_PRODUCT_CREATED_SUBJECT,notEmpty"`
+		ProductUpdated string `env:"NATS_PRODUCT_UPDATED_SUBJECT,notEmpty"`
+		ProductDeleted string `env:"NATS_PRODUCT_DELETED_SUBJECT,notEmpty"`
+
 		UserRegistered string `env:"NATS_USER_REGISTERED_SUBJECT,notEmpty"`
 	}
 )

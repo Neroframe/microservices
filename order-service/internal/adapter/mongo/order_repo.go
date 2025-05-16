@@ -62,7 +62,7 @@ func (r *OrderRepository) Update(ctx context.Context, o *domain.Order) error {
 		return fmt.Errorf("invalid id %q: %w", o.ID, err)
 	}
 
-	// update only the status and updated timestamp
+	// update only the status and timestamp
 	update := bson.M{
 		"$set": bson.M{
 			"status":     o.Status,

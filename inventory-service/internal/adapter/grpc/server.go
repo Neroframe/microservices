@@ -42,7 +42,6 @@ func (api *API) Run(ctx context.Context, errCh chan<- error) {
 	}()
 }
 
-// Provide context to force stop on timeout
 func (api *API) Stop(ctx context.Context) error {
 	if api.server == nil {
 		return nil

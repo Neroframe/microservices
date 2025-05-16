@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/Neroframe/ecommerce-platform/statistics-service/internal/usecase"
+	"github.com/Neroframe/ecommerce-platform/statistics-service/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,21 +14,19 @@ import (
 
 const eventsCollection = "statistics_events"
 
-// implements usecase.StatisticsRepository
+var _ domain.StatisticsRepository = (*Repository)(nil)
+
 type Repository struct {
 	col *mongo.Collection
 }
 
-func NewRepository(db *mongo.Database) usecase.StatisticsRepository {
+func NewRepository(db *mongo.Database) domain.StatisticsRepository {
 	return &Repository{
 		col: db.Collection(eventsCollection),
 	}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Read methods for gRPC
-// ─────────────────────────────────────────────────────────────────────────────
-
+// gRPC methods
 func (r *Repository) CountOrdersByUser(ctx context.Context, userID string) (int32, error) {
 	log.Printf("[Mongo] Counting orders for user_id=%s", userID)
 	filter := bson.M{"user_id": userID, "event_type": "order_created"}
@@ -78,35 +76,53 @@ func (r *Repository) CountDailyActiveUsers(ctx context.Context) (int32, error) {
 	return res.ActiveUsers, nil
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Write methods for NATS event handling
-// ─────────────────────────────────────────────────────────────────────────────
-
+// NATS methods
 func (r *Repository) InsertOrderCreatedEvent(ctx context.Context, userID, orderID string, ts time.Time) error {
+	return r.insertEvent(ctx, userID, orderID, "order_id", "order_created", ts)
+}
+
+func (r *Repository) InsertOrderUpdatedEvent(ctx context.Context, userID, orderID string, ts time.Time) error {
+	return r.insertEvent(ctx, userID, orderID, "order_id", "order_updated", ts)
+}
+
+func (r *Repository) InsertOrderDeletedEvent(ctx context.Context, userID, orderID string, ts time.Time) error {
+	return r.insertEvent(ctx, userID, orderID, "order_id", "order_deleted", ts)
+}
+
+func (r *Repository) InsertProductCreatedEvent(ctx context.Context, userID, productID string, ts time.Time) error {
+	return r.insertEvent(ctx, userID, productID, "product_id", "product_created", ts)
+}
+
+func (r *Repository) InsertProductUpdatedEvent(ctx context.Context, userID, productID string, ts time.Time) error {
+	return r.insertEvent(ctx, userID, productID, "product_id", "product_updated", ts)
+}
+
+func (r *Repository) InsertProductDeletedEvent(ctx context.Context, userID, productID string, ts time.Time) error {
+	return r.insertEvent(ctx, userID, productID, "product_id", "product_deleted", ts)
+}
+
+func (r *Repository) insertEvent(ctx context.Context, userID, entityID, entityKey, eventType string, ts time.Time) error {
 	doc := bson.M{
 		"user_id":    userID,
-		"order_id":   orderID,
-		"event_type": "order_created",
+		entityKey:    entityID,
+		"event_type": eventType,
 		"timestamp":  ts,
 	}
 
 	res, err := r.col.InsertOne(ctx, doc)
 	if err != nil {
-		return fmt.Errorf("InsertOrderCreatedEvent: %w", err)
+		return fmt.Errorf("insertEvent (%s): %w", eventType, err)
 	}
 
 	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
 		log.Printf(
-			"[Mongo] Inserted OrderCreatedEvent _id=%s, user_id=%s, order_id=%s",
-			oid.Hex(),
-			userID,
-			orderID,
+			"[Mongo] Inserted %s _id=%s, user_id=%s, %s=%s",
+			eventType, oid.Hex(), userID, entityKey, entityID,
 		)
 	} else {
 		log.Printf(
-			"[Mongo] Inserted OrderCreatedEvent (non-ObjectID) for order_id=%s; insertedID=%v",
-			orderID,
-			res.InsertedID,
+			"[Mongo] Inserted %s (non-ObjectID), user_id=%s, %s=%s; insertedID=%v",
+			eventType, userID, entityKey, entityID, res.InsertedID,
 		)
 	}
 

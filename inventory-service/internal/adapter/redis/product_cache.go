@@ -11,6 +11,8 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 )
 
+var _ domain.ProductRedisCache = (*ProductCache)(nil)
+
 const keyPrefix = "product:%s"
 const productListKey = "product:list"
 
@@ -18,8 +20,6 @@ type ProductCache struct {
 	client *redis.Client
 	ttl    time.Duration
 }
-
-var _ domain.ProductRedisCache = (*ProductCache)(nil)
 
 func NewProductCache(client *redis.Client, ttl time.Duration) *ProductCache {
 	return &ProductCache{

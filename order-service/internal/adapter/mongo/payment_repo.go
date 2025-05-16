@@ -10,19 +10,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// implements domain.PaymentRepository 
 type PaymentRepository struct {
 	collection *mongo.Collection
 }
 
-// NewPaymentRepository returns a new mongo-backed PaymentRepository.
 func NewPaymentRepository(db *mongo.Database) domain.PaymentRepository {
 	return &PaymentRepository{
 		collection: db.Collection("payments"),
 	}
 }
 
-// Create inserts a new Payment and sets its ID field.
 func (r *PaymentRepository) Create(ctx context.Context, p *domain.Payment) error {
 	res, err := r.collection.InsertOne(ctx, p)
 	if err != nil {
@@ -34,7 +31,6 @@ func (r *PaymentRepository) Create(ctx context.Context, p *domain.Payment) error
 	return nil
 }
 
-// GetByID finds a Payment by its string ID.
 func (r *PaymentRepository) GetByID(ctx context.Context, id string) (*domain.Payment, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -53,7 +49,6 @@ func (r *PaymentRepository) GetByID(ctx context.Context, id string) (*domain.Pay
 	return &p, nil
 }
 
-// Update applies changes to an existing Payment.
 func (r *PaymentRepository) Update(ctx context.Context, p *domain.Payment) error {
 	if p.ID == "" {
 		return domain.ErrNotFound
@@ -79,7 +74,6 @@ func (r *PaymentRepository) Update(ctx context.Context, p *domain.Payment) error
 	return nil
 }
 
-// Delete removes a Payment by its ID.
 func (r *PaymentRepository) Delete(ctx context.Context, id string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {

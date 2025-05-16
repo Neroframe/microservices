@@ -2,66 +2,22 @@ package usecase
 
 import (
 	"context"
-	"time"
 
+	"github.com/Neroframe/ecommerce-platform/statistics-service/internal/domain"
 	statisticspb "github.com/Neroframe/ecommerce-platform/statistics-service/proto"
 )
 
-// ────────────────────────────────────────────────────────────
-// Domain events live here, not in the adapter
-// ────────────────────────────────────────────────────────────
+var _ domain.StatisticsUsecase = (*StatisticsUsecase)(nil)
 
-type OrderCreatedEvent struct {
-	UserID    string    `json:"UserID"`
-	OrderID   string    `json:"OrderID"`
-	Timestamp time.Time `json:"Timestamp"` // If used
+type StatisticsUsecase struct {
+	repo domain.StatisticsRepository
 }
 
-type UserRegisteredEvent struct {
-	UserID    string    `json:"user_id"`
-	Timestamp time.Time `json:"timestamp"`
+func NewStatisticsUsecase(repo domain.StatisticsRepository) *StatisticsUsecase {
+	return &StatisticsUsecase{repo: repo}
 }
 
-// ────────────────────────────────────────────────────────────
-// Repository interface
-// ────────────────────────────────────────────────────────────
-
-type StatisticsRepository interface {
-	CountOrdersByUser(ctx context.Context, userID string) (int32, error)
-	CountTotalUsers(ctx context.Context) (int32, error)
-	CountDailyActiveUsers(ctx context.Context) (int32, error)
-
-	InsertOrderCreatedEvent(ctx context.Context, userID, orderID string, ts time.Time) error
-	InsertUserRegisteredEvent(ctx context.Context, userID string, ts time.Time) error
-}
-
-// ────────────────────────────────────────────────────────────
-// Usecase interface
-// ────────────────────────────────────────────────────────────
-
-type StatisticsUsecase interface {
-	// gRPC read methods
-	GetUserOrdersStatistics(ctx context.Context, userID string) (*statisticspb.UserOrderStatisticsResponse, error)
-	GetUserStatistics(ctx context.Context) (*statisticspb.UserStatisticsResponse, error)
-
-	// NATS event handlers
-	HandleOrderCreated(ctx context.Context, evt OrderCreatedEvent) error
-	HandleUserRegistered(ctx context.Context, evt UserRegisteredEvent) error
-}
-
-// ────────────────────────────────────────────────────────────
-// Usecase implementation
-// ────────────────────────────────────────────────────────────
-
-type statisticsUsecase struct {
-	repo StatisticsRepository
-}
-
-func NewStatisticsUsecase(repo StatisticsRepository) StatisticsUsecase {
-	return &statisticsUsecase{repo: repo}
-}
-
-func (u *statisticsUsecase) GetUserOrdersStatistics(ctx context.Context, userID string) (*statisticspb.UserOrderStatisticsResponse, error) {
+func (u *StatisticsUsecase) GetUserOrdersStatistics(ctx context.Context, userID string) (*statisticspb.UserOrderStatisticsResponse, error) {
 	total, err := u.repo.CountOrdersByUser(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -69,7 +25,7 @@ func (u *statisticsUsecase) GetUserOrdersStatistics(ctx context.Context, userID 
 	return &statisticspb.UserOrderStatisticsResponse{TotalOrders: total}, nil
 }
 
-func (u *statisticsUsecase) GetUserStatistics(ctx context.Context) (*statisticspb.UserStatisticsResponse, error) {
+func (u *StatisticsUsecase) GetUserStatistics(ctx context.Context) (*statisticspb.UserStatisticsResponse, error) {
 	totalUsers, err := u.repo.CountTotalUsers(ctx)
 	if err != nil {
 		return nil, err
@@ -84,10 +40,30 @@ func (u *statisticsUsecase) GetUserStatistics(ctx context.Context) (*statisticsp
 	}, nil
 }
 
-func (u *statisticsUsecase) HandleOrderCreated(ctx context.Context, evt OrderCreatedEvent) error {
+func (u *StatisticsUsecase) HandleOrderCreated(ctx context.Context, evt domain.OrderCreatedEvent) error {
 	return u.repo.InsertOrderCreatedEvent(ctx, evt.UserID, evt.OrderID, evt.Timestamp)
 }
 
-func (u *statisticsUsecase) HandleUserRegistered(ctx context.Context, evt UserRegisteredEvent) error {
+func (u *StatisticsUsecase) HandleOrderUpdated(ctx context.Context, evt domain.OrderUpdatedEvent) error {
+	return u.repo.InsertOrderUpdatedEvent(ctx, evt.UserID, evt.OrderID, evt.Timestamp)
+}
+
+func (u *StatisticsUsecase) HandleOrderDeleted(ctx context.Context, evt domain.OrderDeletedEvent) error {
+	return u.repo.InsertOrderDeletedEvent(ctx, evt.UserID, evt.OrderID, evt.Timestamp)
+}
+
+func (u *StatisticsUsecase) HandleProductCreated(ctx context.Context, evt domain.ProductCreatedEvent) error {
+	return u.repo.InsertProductCreatedEvent(ctx, evt.UserID, evt.ProductID, evt.Timestamp)
+}
+
+func (u *StatisticsUsecase) HandleProductUpdated(ctx context.Context, evt domain.ProductUpdatedEvent) error {
+	return u.repo.InsertProductUpdatedEvent(ctx, evt.UserID, evt.ProductID, evt.Timestamp)
+}
+
+func (u *StatisticsUsecase) HandleProductDeleted(ctx context.Context, evt domain.ProductDeletedEvent) error {
+	return u.repo.InsertProductDeletedEvent(ctx, evt.UserID, evt.ProductID, evt.Timestamp)
+}
+
+func (u *StatisticsUsecase) HandleUserRegistered(ctx context.Context, evt domain.UserRegisteredEvent) error {
 	return u.repo.InsertUserRegisteredEvent(ctx, evt.UserID, evt.Timestamp)
 }
