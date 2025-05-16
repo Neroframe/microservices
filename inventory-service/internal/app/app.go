@@ -55,7 +55,7 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	// Cache inmemory & redis
 	productInmemoryCache := inmemory.NewProductCache()
-	productRedisCache := redis.NewProductCache(redisClient, cfg.Cache.ClientTTL)
+	productRedisCache := redis.NewProductCache(redisClient, cfg.Cache.ProductTTL)
 
 	// NATS publisher
 	eventPublisher := natsadapter.NewInventoryEventPublisher(natsClient)

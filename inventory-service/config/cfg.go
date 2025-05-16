@@ -9,6 +9,8 @@ import (
 
 type (
 	Config struct {
+		Version string `env:"VERSION" envDefault:"1.0.0"`
+
 		Mongo  mongo.Config
 		Server Server
 		Nats   Nats
@@ -37,9 +39,9 @@ type (
 	}
 
 	NatsSubjects struct {
-		OrderCreatedSubject string `env:"NATS_ORDER_CREATED_SUBJECT,notEmpty"`
-		OrderUpdatedSubject string `env:"NATS_ORDER_UPDATED_SUBJECT,notEmpty"`
-		OrderDeletedSubject string `env:"NATS_ORDER_DELETED_SUBJECT,notEmpty"`
+		ProductCreated string `env:"NATS_PRODUCT_CREATED_SUBJECT,notEmpty"`
+		ProductUpdated string `env:"NATS_PRODUCT_UPDATED_SUBJECT,notEmpty"`
+		ProductDeleted string `env:"NATS_PRODUCT_DELETED_SUBJECT,notEmpty"`
 	}
 
 	Redis struct {
@@ -52,7 +54,7 @@ type (
 	}
 
 	Cache struct {
-		ClientTTL              time.Duration `env:"REDIS_CACHE_CLIENT_TTL" envDefault:"24h"`
+		ProductTTL             time.Duration `env:"REDIS_CACHE_CLIENT_TTL" envDefault:"24h"`
 		CMSVariableRefreshTime time.Duration `env:"CLIENT_REFRESH_TIME" envDefault:"1m"`
 	}
 )
