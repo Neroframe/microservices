@@ -37,11 +37,6 @@ type ProductDeletedEvent struct {
 	Timestamp time.Time `json:"Timestamp"`
 }
 
-type UserRegisteredEvent struct {
-	UserID    string    `json:"user_id"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
 // logging
 func (e OrderCreatedEvent) GetOrderID() string  { return e.OrderID }
 func (e OrderUpdatedEvent) GetOrderID() string  { return e.OrderID }

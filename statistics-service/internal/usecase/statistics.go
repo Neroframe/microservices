@@ -64,6 +64,4 @@ func (u *StatisticsUsecase) HandleProductDeleted(ctx context.Context, evt domain
 	return u.repo.InsertProductDeletedEvent(ctx, evt.UserID, evt.ProductID, evt.Timestamp)
 }
 
-func (u *StatisticsUsecase) HandleUserRegistered(ctx context.Context, evt domain.UserRegisteredEvent) error {
-	return u.repo.InsertUserRegisteredEvent(ctx, evt.UserID, evt.Timestamp)
-}
+

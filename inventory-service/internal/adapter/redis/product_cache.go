@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/Neroframe/ecommerce-platform/inventory-service/internal/domain"
@@ -34,11 +35,14 @@ func (c *ProductCache) Set(ctx context.Context, product *domain.Product) error {
 		return fmt.Errorf("failed to marshal product Set: %w", err)
 	}
 
-	return c.client.Unwrap().Set(ctx, c.key(product.ID), data, c.ttl).Err()
-}
+	key := c.key(product.ID)
+	err = c.client.Unwrap().Set(ctx, key, data, c.ttl).Err()
+	if err != nil {
+		return fmt.Errorf("redis Set error: %w", err)
+	}
 
-func (c *ProductCache) key(id string) string {
-	return fmt.Sprintf(keyPrefix, id)
+	log.Printf("[Redis] Set product key=%s ttl=%s", key, c.ttl)
+	return nil
 }
 
 func (c *ProductCache) SetMany(ctx context.Context, products []*domain.Product) error {
@@ -56,17 +60,22 @@ func (c *ProductCache) SetMany(ctx context.Context, products []*domain.Product) 
 		return fmt.Errorf("failed to set many products: %w", err)
 	}
 
+	log.Printf("[Redis] SetMany committed %d products", len(products))
 	return nil
 }
 
 func (c *ProductCache) Get(ctx context.Context, productID string) (*domain.Product, error) {
+	key := c.key(productID)
 	data, err := c.client.Unwrap().Get(ctx, c.key(productID)).Bytes()
 	if err != nil {
 		if err == goredis.Nil {
+			log.Printf("[Redis] MISS for key=%s", key)
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get product: %w", err)
 	}
+
+	log.Printf("[Redis] HIT for key=%s", key)
 
 	var product domain.Product
 	err = json.Unmarshal(data, &product)
@@ -86,7 +95,14 @@ func (c *ProductCache) SetList(ctx context.Context, products []*domain.Product) 
 	if err != nil {
 		return fmt.Errorf("marshal product list: %w", err)
 	}
-	return c.client.Unwrap().Set(ctx, productListKey, data, c.ttl).Err()
+
+	err = c.client.Unwrap().Set(ctx, productListKey, data, c.ttl).Err()
+	if err != nil {
+		return fmt.Errorf("redis SetList error: %w", err)
+	}
+
+	log.Printf("[Redis] Set product list key=%s count=%d ttl=%s", productListKey, len(products), c.ttl)
+	return nil
 }
 
 func (c *ProductCache) GetList(ctx context.Context) ([]*domain.Product, error) {
@@ -104,4 +120,8 @@ func (c *ProductCache) GetList(ctx context.Context) ([]*domain.Product, error) {
 	}
 
 	return products, nil
+}
+
+func (c *ProductCache) key(id string) string {
+	return fmt.Sprintf(keyPrefix, id)
 }

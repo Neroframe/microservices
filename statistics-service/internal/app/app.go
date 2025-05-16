@@ -28,7 +28,7 @@ type App struct {
 func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	log.Printf("Starting %s...", serviceName)
 
-	// MongoDB 
+	// MongoDB
 	mdb, err := mongocon.NewDB(ctx, cfg.Mongo)
 	if err != nil {
 		return nil, fmt.Errorf("mongo connect: %w", err)
@@ -78,11 +78,6 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
 		Subject: cfg.Nats.NatsSubjects.ProductDeleted,
 		Handler: handler.HandleProductDeleted,
-	})
-
-	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
-		Subject: cfg.Nats.NatsSubjects.UserRegistered,
-		Handler: handler.HandleUserRegistered,
 	})
 
 	return &App{

@@ -73,12 +73,3 @@ func handleEvent[T any](ctx context.Context, msg *nats.Msg, logPrefix string, un
 
 	return nil
 }
-
-func (h *StatisticsHandler) HandleUserRegistered(ctx context.Context, msg *nats.Msg) error {
-	var evt domain.UserRegisteredEvent
-	if err := json.Unmarshal(msg.Data, &evt); err != nil {
-		log.Printf("unmarshal user.registered: %v", err)
-		return err
-	}
-	return h.uc.HandleUserRegistered(ctx, evt)
-}

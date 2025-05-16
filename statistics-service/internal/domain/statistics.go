@@ -21,8 +21,6 @@ type StatisticsRepository interface {
 	InsertProductCreatedEvent(ctx context.Context, userID, productID string, ts time.Time) error
 	InsertProductUpdatedEvent(ctx context.Context, userID, productID string, ts time.Time) error
 	InsertProductDeletedEvent(ctx context.Context, userID, productID string, ts time.Time) error
-
-	InsertUserRegisteredEvent(ctx context.Context, userID string, ts time.Time) error
 }
 
 type StatisticsUsecase interface {
@@ -38,6 +36,4 @@ type StatisticsUsecase interface {
 	HandleProductCreated(ctx context.Context, evt ProductCreatedEvent) error
 	HandleProductUpdated(ctx context.Context, evt ProductUpdatedEvent) error
 	HandleProductDeleted(ctx context.Context, evt ProductDeletedEvent) error
-
-	HandleUserRegistered(ctx context.Context, evt UserRegisteredEvent) error
 }

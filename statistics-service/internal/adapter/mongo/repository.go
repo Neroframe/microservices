@@ -40,23 +40,29 @@ func (r *Repository) CountOrdersByUser(ctx context.Context, userID string) (int3
 
 func (r *Repository) CountTotalUsers(ctx context.Context) (int32, error) {
 	log.Println("[Mongo] Counting total users")
-	filter := bson.M{"event_type": "user_registered"}
+
+	filter := bson.M{"event_type": bson.M{"$in": []string{
+		"order_created", "order_updated", "product_created", "product_updated",
+	}}}
+
 	ids, err := r.col.Distinct(ctx, "user_id", filter)
 	if err != nil {
 		return 0, fmt.Errorf("CountTotalUsers: %w", err)
 	}
-	log.Printf("[Mongo] CountUsers result: %d", len(ids))
+	log.Printf("[Mongo] Total unique users: %d", len(ids))
 	return int32(len(ids)), nil
 }
 
 func (r *Repository) CountDailyActiveUsers(ctx context.Context) (int32, error) {
 	since := time.Now().Add(-24 * time.Hour)
 	log.Printf("[Mongo] Counting daily active users since %v", since)
+
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{"timestamp": bson.M{"$gte": since}}}},
 		{{Key: "$group", Value: bson.M{"_id": "$user_id"}}},
 		{{Key: "$count", Value: "activeUsers"}},
 	}
+
 	cur, err := r.col.Aggregate(ctx, pipeline)
 	if err != nil {
 		return 0, fmt.Errorf("CountDailyActiveUsers.Aggregate: %w", err)
@@ -72,7 +78,7 @@ func (r *Repository) CountDailyActiveUsers(ctx context.Context) (int32, error) {
 		}
 	}
 
-	log.Printf("[Mongo] CountDailyActiveUsers result: %d", res.ActiveUsers)
+	log.Printf("[Mongo] Daily active users: %d", res.ActiveUsers)
 	return res.ActiveUsers, nil
 }
 
@@ -102,10 +108,15 @@ func (r *Repository) InsertProductDeletedEvent(ctx context.Context, userID, prod
 }
 
 func (r *Repository) insertEvent(ctx context.Context, userID, entityID, entityKey, eventType string, ts time.Time) error {
+	// set timestamp 
+	if ts.IsZero() {
+		ts = time.Now().UTC()
+	}
+
 	doc := bson.M{
 		"user_id":    userID,
-		entityKey:    entityID,
-		"event_type": eventType,
+		entityKey:    entityID,  // "order_id" or "product_id"
+		"event_type": eventType, // e.g. "order_created"
 		"timestamp":  ts,
 	}
 
@@ -126,17 +137,5 @@ func (r *Repository) insertEvent(ctx context.Context, userID, entityID, entityKe
 		)
 	}
 
-	return nil
-}
-
-func (r *Repository) InsertUserRegisteredEvent(ctx context.Context, userID string, ts time.Time) error {
-	doc := bson.M{
-		"user_id":    userID,
-		"event_type": "user_registered",
-		"timestamp":  ts,
-	}
-	if _, err := r.col.InsertOne(ctx, doc); err != nil {
-		return fmt.Errorf("InsertUserRegisteredEvent: %w", err)
-	}
 	return nil
 }
