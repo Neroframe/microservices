@@ -61,12 +61,12 @@ func handleEvent[T any](ctx context.Context, msg *nats.Msg, logPrefix string, un
 		return err
 	}
 
-	// logging through accessor methods
+	// Proper interface-based logging
 	switch v := any(unmarshalTo).(type) {
-	case domain.OrderCreatedEvent, domain.OrderUpdatedEvent, domain.OrderDeletedEvent:
-		log.Printf("[NATS] %s succeeded for order_id=%s", logPrefix, v.(interface{ GetOrderID() string }).GetOrderID())
-	case domain.ProductCreatedEvent, domain.ProductUpdatedEvent, domain.ProductDeletedEvent:
-		log.Printf("[NATS] %s succeeded for product_id=%s", logPrefix, v.(interface{ GetProductID() string }).GetProductID())
+	case interface{ GetOrderID() string }:
+		log.Printf("[NATS] %s succeeded for order_id=%s", logPrefix, v.GetOrderID())
+	case interface{ GetProductID() string }:
+		log.Printf("[NATS] %s succeeded for product_id=%s", logPrefix, v.GetProductID())
 	default:
 		log.Printf("[NATS] %s succeeded", logPrefix)
 	}

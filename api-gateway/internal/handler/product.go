@@ -68,7 +68,7 @@ func DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
 }
 
 func ListProducts(c *gin.Context) {

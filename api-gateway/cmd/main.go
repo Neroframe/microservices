@@ -71,7 +71,6 @@ func main() {
 		{
 			statistics.GET("/user/:userId/orders", handler.GetUserOrdersStatistics)
 			statistics.GET("/users", handler.GetUserStatistics)
-
 		}
 	}
 

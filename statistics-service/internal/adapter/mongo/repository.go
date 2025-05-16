@@ -108,34 +108,31 @@ func (r *Repository) InsertProductDeletedEvent(ctx context.Context, userID, prod
 }
 
 func (r *Repository) insertEvent(ctx context.Context, userID, entityID, entityKey, eventType string, ts time.Time) error {
-	// set timestamp 
+	// set timestamp
 	if ts.IsZero() {
 		ts = time.Now().UTC()
 	}
 
+	if userID == "" {
+		userID = "no_UserID"
+	}
+
+	id := primitive.NewObjectID()
 	doc := bson.M{
+		"_id":        id,
 		"user_id":    userID,
-		entityKey:    entityID,  // "order_id" or "product_id"
-		"event_type": eventType, // e.g. "order_created"
+		entityKey:    entityID,
+		"event_type": eventType,
 		"timestamp":  ts,
 	}
 
-	res, err := r.col.InsertOne(ctx, doc)
+	_, err := r.col.InsertOne(ctx, doc)
 	if err != nil {
 		return fmt.Errorf("insertEvent (%s): %w", eventType, err)
 	}
 
-	if oid, ok := res.InsertedID.(primitive.ObjectID); ok {
-		log.Printf(
-			"[Mongo] Inserted %s _id=%s, user_id=%s, %s=%s",
-			eventType, oid.Hex(), userID, entityKey, entityID,
-		)
-	} else {
-		log.Printf(
-			"[Mongo] Inserted %s (non-ObjectID), user_id=%s, %s=%s; insertedID=%v",
-			eventType, userID, entityKey, entityID, res.InsertedID,
-		)
-	}
+	log.Printf("[Mongo] Inserted %s _id=%s, user_id=%s, %s=%s",
+		eventType, id.Hex(), userID, entityKey, entityID)
 
 	return nil
 }

@@ -20,22 +20,29 @@ type OrderDeletedEvent struct {
 }
 
 type ProductCreatedEvent struct {
-	UserID    string    `json:"UserID"`
-	ProductID string    `json:"ProductID"`
-	Timestamp time.Time `json:"Timestamp"`
+	UserID     string    `json:"user_id"`
+	ProductID  string    `json:"id"`
+	Name       string    `json:"name"`
+	Price      float64   `json:"price"`
+	CategoryID string    `json:"category_id"`
+	Timestamp  time.Time `json:"timestamp"`
 }
 
 type ProductUpdatedEvent struct {
-	UserID    string    `json:"UserID"`
-	ProductID string    `json:"ProductID"`
-	Timestamp time.Time `json:"Timestamp"`
+	UserID     string    `json:"user_id"`
+	ProductID  string    `json:"id"`
+	Name       string    `json:"name"`
+	Price      float64   `json:"price"`
+	CategoryID string    `json:"category_id"`
+	Timestamp  time.Time `json:"timestamp"`
 }
 
 type ProductDeletedEvent struct {
-	UserID    string    `json:"UserID"`
-	ProductID string    `json:"ProductID"`
-	Timestamp time.Time `json:"Timestamp"`
+	UserID    string    `json:"user_id"`
+	ProductID string    `json:"id"`
+	Timestamp time.Time `json:"timestamp"`
 }
+
 
 // logging
 func (e OrderCreatedEvent) GetOrderID() string  { return e.OrderID }
