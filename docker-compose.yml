@@ -31,7 +31,7 @@ services:
       - mongodb
       - redis
     ports:
-      - "50051:50051"
+      - "50054:50051"
     environment:
       # Version
       VERSION: "1.0.0"

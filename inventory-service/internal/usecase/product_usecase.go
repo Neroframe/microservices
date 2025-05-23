@@ -116,7 +116,6 @@ func (u *productUsecase) GetByID(ctx context.Context, id string) (*domain.Produc
 		return nil, nil // not found
 	}
 
-	// Warm both caches
 	u.inMemoryCache.Set(product)
 	_ = u.redisCache.Set(ctx, product)
 
