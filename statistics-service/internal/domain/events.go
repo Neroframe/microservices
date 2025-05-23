@@ -2,53 +2,20 @@ package domain
 
 import "time"
 
-type OrderCreatedEvent struct {
-	UserID    string    `json:"UserID"`
-	OrderID   string    `json:"OrderID"`
-	Timestamp time.Time `json:"Timestamp"`
-}
-type OrderUpdatedEvent struct {
-	UserID    string    `json:"UserID"`
-	OrderID   string    `json:"OrderID"`
-	Timestamp time.Time `json:"Timestamp"`
+type Event struct {
+	UserID    string                 `json:"user_id"`
+	EntityID  string                 `json:"entity_id"`
+	EntityKey string                 `json:"entity_key"` // e.g. "order_id", "product_id"
+	EventType string                 `json:"event_type"` // e.g. "order.created", "product.updated"
+	Timestamp time.Time              `json:"timestamp"`
+	Data      map[string]interface{} `json:"data,omitempty"`
 }
 
-type OrderDeletedEvent struct {
-	UserID    string    `json:"UserID"`
-	OrderID   string    `json:"OrderID"`
-	Timestamp time.Time `json:"Timestamp"`
+type EventCache interface {
+	Get(id string) (*Event, bool)
+	Set(evt *Event)
+	SetMany(evts []*Event)
+	Delete(id string)
+
+	GetList() ([]*Event, bool)
 }
-
-type ProductCreatedEvent struct {
-	UserID     string    `json:"user_id"`
-	ProductID  string    `json:"id"`
-	Name       string    `json:"name"`
-	Price      float64   `json:"price"`
-	CategoryID string    `json:"category_id"`
-	Timestamp  time.Time `json:"timestamp"`
-}
-
-type ProductUpdatedEvent struct {
-	UserID     string    `json:"user_id"`
-	ProductID  string    `json:"id"`
-	Name       string    `json:"name"`
-	Price      float64   `json:"price"`
-	CategoryID string    `json:"category_id"`
-	Timestamp  time.Time `json:"timestamp"`
-}
-
-type ProductDeletedEvent struct {
-	UserID    string    `json:"user_id"`
-	ProductID string    `json:"id"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-
-// logging
-func (e OrderCreatedEvent) GetOrderID() string  { return e.OrderID }
-func (e OrderUpdatedEvent) GetOrderID() string  { return e.OrderID }
-func (e OrderDeletedEvent) GetOrderID() string  { return e.OrderID }
-
-func (e ProductCreatedEvent) GetProductID() string  { return e.ProductID }
-func (e ProductUpdatedEvent) GetProductID() string  { return e.ProductID }
-func (e ProductDeletedEvent) GetProductID() string  { return e.ProductID }

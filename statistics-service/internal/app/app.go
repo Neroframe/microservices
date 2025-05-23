@@ -10,6 +10,7 @@ import (
 
 	"github.com/Neroframe/ecommerce-platform/statistics-service/config"
 	grpcadapter "github.com/Neroframe/ecommerce-platform/statistics-service/internal/adapter/grpc"
+	cache "github.com/Neroframe/ecommerce-platform/statistics-service/internal/adapter/inmemory"
 	mongoadapter "github.com/Neroframe/ecommerce-platform/statistics-service/internal/adapter/mongo"
 	natsadapter "github.com/Neroframe/ecommerce-platform/statistics-service/internal/adapter/nats"
 	"github.com/Neroframe/ecommerce-platform/statistics-service/internal/usecase"
@@ -34,9 +35,11 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("mongo connect: %w", err)
 	}
 
-	// Repository & Usecase
+	// Repository, inmemory cache & Usecase
 	repo := mongoadapter.NewRepository(mdb.Conn)
-	uc := usecase.NewStatisticsUsecase(repo)
+	evtCache := cache.NewInMemoryEventCache()
+
+	uc := usecase.NewStatisticsUsecase(repo, evtCache)
 
 	// gRPC API
 	grpcAPI := grpcadapter.New(cfg.Server.GRPCServer, uc)
@@ -48,37 +51,25 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 	log.Printf("NATS status: %s", nc.Conn.Status())
 
-	// NATS Consumer & Handlers
+	// NATS conn & Handler
 	pubsub := natsconsumer.NewPubSub(nc)
-	handler := natsadapter.NewStatisticsHandler(uc)
+	handler := natsadapter.NewStatisticsHandler(uc, nc.Conn)
 
-	// Order created, updated, deleted events
-	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
-		Subject: cfg.Nats.NatsSubjects.OrderCreated,
-		Handler: handler.HandleOrderCreated,
-	})
-	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
-		Subject: cfg.Nats.NatsSubjects.OrderUpdated,
-		Handler: handler.HandleOrderUpdated,
-	})
-	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
-		Subject: cfg.Nats.NatsSubjects.OrderDeleted,
-		Handler: handler.HandleOrderDeleted,
-	})
+	subjects := []string{
+		cfg.Nats.NatsSubjects.OrderCreated,
+		cfg.Nats.NatsSubjects.OrderUpdated,
+		cfg.Nats.NatsSubjects.OrderDeleted,
+		cfg.Nats.NatsSubjects.ProductCreated,
+		cfg.Nats.NatsSubjects.ProductUpdated,
+		cfg.Nats.NatsSubjects.ProductDeleted,
+	}
 
-	// Product created, updated, deleted events
-	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
-		Subject: cfg.Nats.NatsSubjects.ProductCreated,
-		Handler: handler.HandleProductCreated,
-	})
-	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
-		Subject: cfg.Nats.NatsSubjects.ProductUpdated,
-		Handler: handler.HandleProductUpdated,
-	})
-	pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
-		Subject: cfg.Nats.NatsSubjects.ProductDeleted,
-		Handler: handler.HandleProductDeleted,
-	})
+	for _, subj := range subjects {
+		pubsub.Subscribe(natsconsumer.PubSubSubscriptionConfig{
+			Subject: subj,
+			Handler: handler.Handle,
+		})
+	}
 
 	return &App{
 		grpcServer:   grpcAPI,

@@ -83,56 +83,56 @@ func (r *Repository) CountDailyActiveUsers(ctx context.Context) (int32, error) {
 }
 
 // NATS methods
-func (r *Repository) InsertOrderCreatedEvent(ctx context.Context, userID, orderID string, ts time.Time) error {
-	return r.insertEvent(ctx, userID, orderID, "order_id", "order_created", ts)
-}
-
-func (r *Repository) InsertOrderUpdatedEvent(ctx context.Context, userID, orderID string, ts time.Time) error {
-	return r.insertEvent(ctx, userID, orderID, "order_id", "order_updated", ts)
-}
-
-func (r *Repository) InsertOrderDeletedEvent(ctx context.Context, userID, orderID string, ts time.Time) error {
-	return r.insertEvent(ctx, userID, orderID, "order_id", "order_deleted", ts)
-}
-
-func (r *Repository) InsertProductCreatedEvent(ctx context.Context, userID, productID string, ts time.Time) error {
-	return r.insertEvent(ctx, userID, productID, "product_id", "product_created", ts)
-}
-
-func (r *Repository) InsertProductUpdatedEvent(ctx context.Context, userID, productID string, ts time.Time) error {
-	return r.insertEvent(ctx, userID, productID, "product_id", "product_updated", ts)
-}
-
-func (r *Repository) InsertProductDeletedEvent(ctx context.Context, userID, productID string, ts time.Time) error {
-	return r.insertEvent(ctx, userID, productID, "product_id", "product_deleted", ts)
-}
-
-func (r *Repository) insertEvent(ctx context.Context, userID, entityID, entityKey, eventType string, ts time.Time) error {
-	// set timestamp
-	if ts.IsZero() {
-		ts = time.Now().UTC()
-	}
-
-	if userID == "" {
-		userID = "no_UserID"
-	}
-
-	id := primitive.NewObjectID()
+func (r *Repository) InsertEvent(ctx context.Context, evt domain.Event) error {
 	doc := bson.M{
-		"_id":        id,
-		"user_id":    userID,
-		entityKey:    entityID,
-		"event_type": eventType,
-		"timestamp":  ts,
+		"user_id":    evt.UserID,
+		"entity_key": evt.EntityKey,
+		"entity_id":  evt.EntityID,
+		"event_type": evt.EventType,
+		"timestamp":  evt.Timestamp,
+		"data": evt.Data,
 	}
 
 	_, err := r.col.InsertOne(ctx, doc)
 	if err != nil {
-		return fmt.Errorf("insertEvent (%s): %w", eventType, err)
+		return fmt.Errorf("mongo insert event: %w", err)
 	}
-
-	log.Printf("[Mongo] Inserted %s _id=%s, user_id=%s, %s=%s",
-		eventType, id.Hex(), userID, entityKey, entityID)
-
 	return nil
+}
+
+func (r *Repository) ListEvents(ctx context.Context) ([]domain.Event, error) {
+	cur, err := r.col.Find(ctx, bson.D{}) 
+	if err != nil {
+		return nil, fmt.Errorf("mongo find events: %w", err)
+	}
+	defer cur.Close(ctx)
+
+	var out []domain.Event
+	for cur.Next(ctx) {
+		var doc struct {
+			ID        primitive.ObjectID     `bson:"_id"`
+			UserID    string                 `bson:"user_id"`
+			EntityKey string                 `bson:"entity_key"`
+			EntityID  string                 `bson:"entity_id"`
+			EventType string                 `bson:"event_type"`
+			Timestamp time.Time              `bson:"timestamp"`
+			Data      map[string]interface{} `bson:"data,omitempty"`
+		}
+		if err := cur.Decode(&doc); err != nil {
+			return nil, fmt.Errorf("decode event doc: %w", err)
+		}
+
+		out = append(out, domain.Event{
+			UserID:    doc.UserID,
+			EntityKey: doc.EntityKey,
+			EntityID:  doc.EntityID,
+			EventType: doc.EventType,
+			Timestamp: doc.Timestamp,
+			Data:      doc.Data,
+		})
+	}
+	if err := cur.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+	return out, nil
 }

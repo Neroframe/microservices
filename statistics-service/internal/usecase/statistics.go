@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Neroframe/ecommerce-platform/statistics-service/internal/domain"
 	statisticspb "github.com/Neroframe/ecommerce-platform/statistics-service/proto"
@@ -10,11 +11,12 @@ import (
 var _ domain.StatisticsUsecase = (*StatisticsUsecase)(nil)
 
 type StatisticsUsecase struct {
-	repo domain.StatisticsRepository
+	repo  domain.StatisticsRepository
+	cache domain.EventCache
 }
 
-func NewStatisticsUsecase(repo domain.StatisticsRepository) *StatisticsUsecase {
-	return &StatisticsUsecase{repo: repo}
+func NewStatisticsUsecase(repo domain.StatisticsRepository, cache domain.EventCache) *StatisticsUsecase {
+	return &StatisticsUsecase{repo: repo, cache: cache}
 }
 
 func (u *StatisticsUsecase) GetUserOrdersStatistics(ctx context.Context, userID string) (*statisticspb.UserOrderStatisticsResponse, error) {
@@ -40,28 +42,24 @@ func (u *StatisticsUsecase) GetUserStatistics(ctx context.Context) (*statisticsp
 	}, nil
 }
 
-func (u *StatisticsUsecase) HandleOrderCreated(ctx context.Context, evt domain.OrderCreatedEvent) error {
-	return u.repo.InsertOrderCreatedEvent(ctx, evt.UserID, evt.OrderID, evt.Timestamp)
+// All data (orders & intventory items) must be stored in db and cache, but if you try to retrieve data, then it should be fetched from cache.
+func (u *StatisticsUsecase) HandleEvent(ctx context.Context, evt domain.Event) error {
+	// Store in Mongo
+	if err := u.repo.InsertEvent(ctx, evt); err != nil {
+		return fmt.Errorf("repo.InsertEvent: %w", err)
+	}
+
+	// Store inmemory cache
+	switch evt.EventType {
+	case "order.created", "order.updated", "product.created", "product.updated":
+		u.cache.Set(&evt)
+
+	case "order.deleted", "product.deleted":
+		u.cache.Delete(evt.EntityID)
+
+	default:
+		fmt.Printf("unknown event type: %s", evt.EventType)
+	}
+
+	return nil
 }
-
-func (u *StatisticsUsecase) HandleOrderUpdated(ctx context.Context, evt domain.OrderUpdatedEvent) error {
-	return u.repo.InsertOrderUpdatedEvent(ctx, evt.UserID, evt.OrderID, evt.Timestamp)
-}
-
-func (u *StatisticsUsecase) HandleOrderDeleted(ctx context.Context, evt domain.OrderDeletedEvent) error {
-	return u.repo.InsertOrderDeletedEvent(ctx, evt.UserID, evt.OrderID, evt.Timestamp)
-}
-
-func (u *StatisticsUsecase) HandleProductCreated(ctx context.Context, evt domain.ProductCreatedEvent) error {
-	return u.repo.InsertProductCreatedEvent(ctx, evt.UserID, evt.ProductID, evt.Timestamp)
-}
-
-func (u *StatisticsUsecase) HandleProductUpdated(ctx context.Context, evt domain.ProductUpdatedEvent) error {
-	return u.repo.InsertProductUpdatedEvent(ctx, evt.UserID, evt.ProductID, evt.Timestamp)
-}
-
-func (u *StatisticsUsecase) HandleProductDeleted(ctx context.Context, evt domain.ProductDeletedEvent) error {
-	return u.repo.InsertProductDeletedEvent(ctx, evt.UserID, evt.ProductID, evt.Timestamp)
-}
-
-
